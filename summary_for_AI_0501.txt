@@ -1,0 +1,619 @@
+数据中心利用率与资源优化 Streamlit Demo 项目 Summary for AI
+
+一、项目定位
+
+这个项目是 EOE（Energy Optimization Engine）中的“模块2：利用率与资源优化模块”。
+
+用户正在开发一个面向数据中心和高能耗数字基础设施的作品集型 Streamlit demo，用于求职展示。这个 demo 的目标不是成为真实数据中心运维系统，而是作为个人作品集的一部分，展示用户具备“数据中心能耗分析、资源利用率优化、节能经济性评估、管理决策输出”的产品化能力。
+
+核心展示逻辑是：
+
+上传资产利用率数据 CSV
+→ 识别低利用率资产和疑似僵尸资产
+→ 估算这些资产造成的隐性能耗浪费和电费浪费
+→ 估算资源整合、迁移、关停评估后的节能收益
+→ 输出管理者和投资人能看懂的图表、KPI 和自动分析报告。
+
+用户明确强调：
+1. 不需要实时监控接口。
+2. 不需要数据库。
+3. 不需要真正服务真实数据中心。
+4. 不需要复杂 SLA / 自动迁移 / 自动关停。
+5. Demo 的目标是“能唬住企业管理者和投资人”，所以结果展示、逻辑自洽、页面专业感比真实运维复杂度更重要。
+6. 用户不会 Python，只会复制粘贴、运行测试、反馈问题，所以后续回复要直接给可复制代码，不要讲太多专业实现细节。
+
+
+二、当前项目结构
+
+当前建议项目结构为：
+
+data_center_utilization_demo/
+│
+├── app.py
+├── i18n.py
+├── report.py
+│
+├── sample/
+│   └── sample_utilization_template.csv
+│
+├── core/
+│   ├── __init__.py
+│   ├── data_loader.py
+│   ├── metrics.py
+│   ├── power_model.py
+│   ├── consolidation.py
+│   ├── risk_scoring.py
+│   └── summary.py
+│
+├── visualization/
+│   ├── __init__.py
+│   └── plots.py
+│
+└── .streamlit/
+    └── config.toml
+
+
+三、已经完成的文件与功能
+
+1. sample/sample_utilization_template.csv
+
+已独立放置 CSV 模板 / 样品数据文件。
+
+这个文件不再由 sample_data.py 动态生成，而是作为真实存在的模板文件放在 sample 文件夹中。
+
+模板字段包括：
+
+timestamp
+asset_id
+utilization
+asset_type
+group
+power_idle
+power_peak
+capacity
+memory_utilization
+disk_io
+network_io
+business_critical
+migratable
+migration_cost
+restart_risk_cost
+
+左侧工具栏中“下载模板”按钮会读取这个 CSV 文件。
+
+
+2. core/data_loader.py
+
+负责：
+
+读取上传 CSV；
+读取模板 CSV；
+读取模板 CSV bytes 用于下载按钮；
+字段标准化；
+字段别名识别；
+时间戳转换；
+利用率从 0–1 自动转换为 0–100；
+空值、重复值处理；
+填补缺失可选字段；
+处理 business_critical、migratable 这类 yes/no 字段；
+估算时间步长；
+估算分析周期天数。
+
+目前只允许上传 CSV，不再支持 Excel。用户希望 demo 更简洁。
+
+
+3. core/metrics.py
+
+负责计算资产级、分组级、类型级指标。
+
+资产级指标包括：
+
+平均利用率
+最大利用率
+最小利用率
+P90 / P95 利用率
+高负载时段占比
+平均内存利用率
+平均磁盘 IO
+平均网络 IO
+是否低利用率
+是否基础疑似僵尸
+是否有隐藏活动
+是否业务保护资产
+是否可迁移
+最终是否疑似僵尸
+
+判断逻辑：
+
+is_low_util = avg_utilization < low_util_threshold
+
+is_zombie_basic = avg_utilization < low_util_threshold
+                  and high_load_duty < high_duty_threshold
+
+is_zombie = is_zombie_basic
+            and not has_hidden_activity
+            and not is_business_protected
+
+其中隐藏活动通过内存、磁盘 IO、网络 IO 辅助判断。
+
+分组级和类型级会统计：
+
+资产数量
+平均利用率
+低利用率资产数
+疑似僵尸资产数
+总耗电量
+总电费
+潜在浪费电量
+潜在浪费电费
+低利用率资产占比
+疑似僵尸资产占比
+
+
+4. core/power_model.py
+
+负责功率、电量、电费估算。
+
+核心逻辑：
+
+estimated_power_w = power_idle + (power_peak - power_idle) * utilization_fraction
+
+然后转换为 kW，再按时间步长计算 kWh。
+
+注意：当前代码里转换方式是：
+
+estimated_power_kw = estimated_power_w / 100
+estimated_power_kw = estimated_power_kw / 10
+
+这等价于除以 1000。写法有点奇怪但结果正确。后续可优化成 estimated_power_w / 1000，但目前功能不需要改。
+
+还会计算：
+
+平均功率
+峰值功率
+最小功率
+资产周期耗电量
+资产周期电费
+疑似僵尸资产对应的浪费电量和浪费电费
+按时间汇总的总功率曲线
+
+
+5. core/consolidation.py
+
+负责中级功能：资源整合测算。
+
+核心功能：
+
+筛选可整合候选资产：
+is_zombie = True
+is_migratable = True
+is_business_protected = False
+
+按整合率 consolidation_ratio 选出理论可下线 / 可迁移评估资产。
+
+同时受 safe_util_limit 限制：整合后平均利用率不能超过安全上限。
+
+输出：
+
+candidate_assets
+estimated_shutdown_assets
+post_avg_utilization
+saving_energy_kwh
+saving_cost
+cooling_saving_kwh
+cooling_saving_cost
+migration_cost
+restart_risk_cost
+gross_saving_cost
+net_saving_cost
+annual_gross_saving
+annual_net_saving
+total_capacity
+remaining_capacity
+
+也支持按 group 分组计算整合收益。
+
+
+6. core/risk_scoring.py
+
+负责高级展示功能：风险评分与动作建议。
+
+主要基于：
+
+CPU/设备平均利用率
+高负载时段占比
+内存利用率
+磁盘 IO
+网络 IO
+业务保护
+可迁移性
+
+生成：
+
+risk_score
+priority_level
+action_category
+
+action_category 包括类似：
+
+Immediate Shutdown Assessment
+Migration / Consolidation Candidate
+Business Validation Required
+Protected / Validate Only
+Utilization Watchlist
+Normal Operation
+
+这是为了给管理层展示“不是直接关停，而是优先排查和分级处理”。
+
+
+7. core/summary.py
+
+负责汇总所有结果，用于 KPI 和报告。
+
+输出：
+
+分析周期
+年化系数
+资产总数
+低利用率资产数
+疑似僵尸资产数
+业务保护资产数
+可迁移资产数
+低利用率资产占比
+疑似僵尸资产占比
+平均利用率
+P95 利用率
+总耗电量
+总电费
+潜在浪费电量
+潜在浪费电费
+候选资产数量
+理论可下线资产
+整合后平均利用率
+节省电量
+设备侧节省
+冷却联动节省
+迁移成本
+重启风险成本
+综合节省
+净节省
+年度综合节省
+年度净节省
+主要浪费分组
+
+还会生成：
+
+优先排查清单
+管理动作分类汇总
+
+
+8. report.py
+
+负责中英文自动报告文本。
+
+现在 app.py 不直接写报告内容，而是通过 report.py 的 build_utilization_report() 根据 summary 和 thresholds 生成。
+
+报告分为四个 tab：
+
+摘要
+经济性
+决策建议
+风险提示
+
+中文和英文都已写好初版。
+
+中文报告主要表达：
+
+本次分析覆盖多少资产
+分析周期
+平均利用率
+低利用率资产数量
+疑似僵尸资产数量
+潜在浪费电量
+浪费电费
+当前整合假设下的候选资产和理论下线数量
+整合后平均利用率
+设备侧节省、冷却联动节省、净节省、年度净节省
+建议优先排查标准
+风险提示：低利用率不等于可立即关停
+
+用户后续计划精修中文内容，再让我帮他改英文表述。
+
+
+9. i18n.py
+
+负责中英文 UI 文案。
+
+重要要求：
+
+app.py 中尽量不要直接写中文/英文；
+所有 UI 文案尽量放 i18n.py；
+报告类长文本放 report.py。
+
+当前 i18n.py 已包含：
+
+页面标题
+侧边栏标题
+数据上传区
+分析模式
+阈值参数
+功率与电价参数
+整合假设
+高级假设
+运行按钮
+空状态提示
+场景摘要
+模型说明
+KPI 名称
+图表标题
+坐标轴名称
+表格列名
+报告 tab 名称
+单位
+中英文切换按钮
+
+特别注意：
+
+“综合电价”已经改为“加权平均电价”。
+英文为 Weighted Average Electricity Price。
+
+用户决定不做峰谷电价，因为这个模块不是储能调度模块，使用加权平均电价更稳。
+
+
+10. visualization/plots.py
+
+负责图表。
+
+目前使用 Plotly，不是 Matplotlib。
+
+已有图表：
+
+资产平均利用率分布
+平均利用率 - 耗电量散点图
+分组能耗与浪费成本图
+疑似僵尸资产节省潜力 Top 10
+节省收益瀑布图
+管理动作分类图
+总功率时间序列
+
+图表风格为 plotly_dark，透明背景，适配暗色 UI。
+
+用户后续计划继续精修图表风格。
+
+
+11. .streamlit/config.toml
+
+已生成暗色主题配置：
+
+[theme]
+base = "dark"
+primaryColor = "#00AEEF"
+backgroundColor = "#0B0F14"
+secondaryBackgroundColor = "#151A21"
+textColor = "#E6EDF3"
+font = "sans serif"
+
+该风格参考了用户此前另一个已经打磨完成的 Streamlit demo。
+
+
+12. app.py
+
+当前 app.py 已整合所有功能，且 UI 向用户提供的参考 app.py 靠近。
+
+当前页面逻辑：
+
+左侧工具栏：
+语言切换
+数据输入：上传 CSV + 下载模板，左右并排
+分析模式：基础 / 标准 / 增强
+识别阈值
+功率与电价
+整合假设
+高级假设
+开始测试按钮
+
+注意：
+已删除“使用样品数据 checkbox”。
+现在只允许上传 CSV。
+下载模板按钮保留，但布局更克制。
+
+右侧未运行时：
+Hero 区
+场景摘要
+空状态提示
+
+右侧运行后：
+Hero 区
+当前分析场景
+核心 KPI
+结果概览
+图表分析
+自动分析报告
+详细数据表折叠栏
+
+重要修改：
+上传 CSV 后，不点“开始测试”不会计算结果。
+删除原始 CSV 的“数据预览”扩展栏。
+资产分析清单、优先排查清单、分组表、类型表已放到最后的“详细数据表”折叠栏中。
+删除所有结果 CSV 下载按钮，只保留模板下载。
+
+
+四、当前 app.py 的主要交互逻辑
+
+用户必须上传 CSV，然后点击左侧最下方“开始测试”。
+
+未点击按钮时：
+
+不读取 CSV；
+不清洗数据；
+不计算；
+不展示结果。
+
+点击按钮后才执行：
+
+read_uploaded_file
+clean_utilization_data
+estimate_time_step_hours
+get_analysis_period_days
+apply_power_model
+calculate_energy_by_time
+calculate_asset_metrics
+attach_energy_cost_to_asset_metrics
+calculate_risk_score（仅增强模式）
+calculate_consolidation
+calculate_group_metrics
+calculate_type_metrics
+calculate_summary
+build_priority_asset_list
+build_management_action_counts
+build_utilization_report
+
+然后展示 KPI、图表、报告、详细表格。
+
+
+五、当前功能边界
+
+已实现：
+
+上传 CSV
+下载 CSV 模板
+中英文切换
+基础模式
+标准模式
+增强模式
+低利用率识别
+疑似僵尸资产识别
+业务保护资产排除
+可迁移性判断
+内存 / IO 辅助判断
+功率估算
+耗电量估算
+电费估算
+冷却联动节省
+资源整合率
+整合后安全利用率约束
+理论可下线资产
+迁移成本扣除
+重启风险成本扣除
+净节省
+年度净节省
+风险评分
+优先级分类
+动作建议分类
+自动报告
+管理层风格 UI
+详细表格折叠
+
+未实现且暂时不建议实现：
+
+实时监控接口
+数据库
+Prometheus / Zabbix / DCIM 接入
+自动关停
+真实业务迁移调度
+复杂 SLA 约束
+峰谷电价匹配
+机器学习预测
+实时告警
+
+
+六、用户最新 UI 修改方向
+
+用户刚提出并已实施的 UI 修改要求：
+
+1. 左侧输入栏数据输入部分：
+不需要“使用样品数据”的 checkbox。
+只允许上传 CSV。
+下载模板按钮不要太大，不要花哨。
+布局参考另一个完美版 app.py：上传框和下载模板按钮左右并排。
+
+2. 上传完 CSV 后：
+不点“开始测试”右边不应该出结果。
+已经改为必须点击按钮才计算。
+
+3. 右侧“数据预览”扩展栏：
+本质是输入 CSV，不需要。
+已经删除。
+
+4. 资产分析清单：
+移动到自动分析报告后面。
+做成“详细数据表”的折叠栏。
+默认不展开。
+下载结果 CSV 功能删除。
+已经实现。
+
+5. 结果页面优先级：
+先 KPI、图表、自动报告；
+表格只作为后台核查资料隐藏。
+
+
+七、用户下一步计划
+
+用户准备开始详细测试第一版 demo。
+
+接下来可能会做：
+
+1. 检查功能是否报错。
+2. 检查上传模板 CSV 后是否能正常分析。
+3. 检查基础 / 标准 / 增强模式计算是否合理。
+4. 检查图表是否美观。
+5. 检查 UI 布局是否符合预期。
+6. 精修中文文案。
+7. 再让 AI 帮忙改英文表述。
+8. 可能继续调整图表风格。
+9. 可能修改报告输出逻辑。
+10. 可能希望更贴近另一个 EOE demo 的 UI 视觉风格。
+
+
+八、后续接手时的回答风格建议
+
+用户不会 Python，不喜欢听太多技术解释。
+
+如果用户反馈报错：
+直接告诉他改哪个文件、替换哪一段，最好给完整文件或明确替换代码。
+
+如果用户说“开始写”：
+直接给保存路径和完整代码，不要解释太多。
+
+如果用户让先反馈：
+先总结理解，不急着写代码。
+
+如果用户要求 UI 修改：
+尽量保持与参考 app.py 风格一致：
+- Hero card
+- chip row
+- sidebar section card
+- scenario bar
+- metric cards
+- summary card
+- tabs
+- expander
+- 暗色蓝色科技风
+
+如果用户要求精修文案：
+中文优先写得像面向企业管理者 / 投资人，而不是工程调试说明。
+英文要专业但不要太复杂。
+
+
+九、重要注意事项
+
+1. 用户此前多次强调：
+app.py 中尽量不要直接写中英文文字。
+UI 文案放 i18n.py。
+报告文案放 report.py。
+
+2. 本项目和此前储能电费优化 demo 是两个不同模块，但 UI 风格要统一。
+
+3. “加权平均电价”不要改成峰谷电价，除非用户明确要求。
+
+4. 模板 CSV 必须作为 sample 文件夹里的独立 csv 文件存在，不要重新写回动态生成函数。
+
+5. 不要恢复“使用样品数据 checkbox”。
+
+6. 不要恢复结果 CSV 下载按钮。
+
+7. 不要把原始数据预览重新放到主页面。
+
+8. 详细表格默认折叠。
+
+10. 这个 demo 的价值是展示“低利用率资产 → 能耗浪费 → 经济损失 → 资源整合空间 → 管理建议”，不是做真实数据中心自动化运维。
