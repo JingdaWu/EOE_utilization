@@ -32,12 +32,9 @@ from core.summary import (
 )
 
 from visualization.plots import (
-    create_utilization_distribution,
-    create_energy_scatter,
-    create_group_energy_chart,
-    create_zombie_top_chart,
-    create_saving_waterfall,
-    create_action_category_chart,
+    create_asset_status_pie,
+    create_cost_saving_pie,
+    create_annual_economics_bar,
     create_hourly_power_chart,
 )
 
@@ -198,7 +195,7 @@ st.markdown(
 
     .scenario-grid {
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 10px;
     }
 
@@ -429,6 +426,14 @@ def fmt(value: float, digits: int = 0) -> str:
         return str(value)
 
 
+def money(value: float, digits: int = 0) -> str:
+    return f"{T['currency']}{fmt(value, digits)}"
+
+
+def pct(value: float, digits: int = 2) -> str:
+    return f"{fmt(value, digits)} {T['percent']}"
+
+
 def localize_bool_columns(df: pd.DataFrame, text: dict) -> pd.DataFrame:
     result = df.copy()
     bool_cols = [
@@ -479,9 +484,12 @@ def rename_columns_for_display(df: pd.DataFrame, text: dict, columns: list[str])
         "cooling_saving_cost": text["cooling_saving_cost"],
         "migration_cost": text["migration_cost"],
         "restart_risk_cost": text["restart_risk_cost"],
-        "gross_saving_cost": text["gross_saving_cost"],
-        "net_saving_cost": text["net_saving_cost"],
-        "annual_net_saving": text["annual_net_saving_col"],
+        "baseline_cost": text["baseline_cost"],
+        "post_consolidation_cost": text["post_consolidation_cost"],
+        "cost_saving_ratio": text["cost_saving_ratio"],
+        "annual_operating_saving": text["annual_operating_saving"],
+        "one_time_consolidation_cost": text["one_time_consolidation_cost"],
+        "first_year_net_benefit": text["first_year_net_benefit"],
         "low_util_ratio": text["low_util_assets"],
         "zombie_ratio": text["zombie_assets"],
         "total_energy_kwh": text["total_energy"],
@@ -644,60 +652,69 @@ electricity_price = st.sidebar.number_input(
 # Sidebar - Consolidation
 # ============================================================
 
-render_sidebar_section(T["section_consolidation"], T["section_consolidation_desc"])
+# Basic Mode keeps advanced assumptions hidden and uses conservative defaults.
+consolidation_ratio = 70
+safe_util_limit = 70
+cooling_factor = 0.30
+migration_cost_multiplier = 1.0
+risk_cost_multiplier = 1.0
 
-consolidation_ratio = st.sidebar.slider(
-    T["consolidation_ratio"],
-    min_value=0,
-    max_value=100,
-    value=50,
-    step=5,
-    key="consolidation_ratio",
-)
+if mode in ["standard", "enhanced"]:
+    render_sidebar_section(T["section_consolidation"], T["section_consolidation_desc"])
 
-safe_util_limit = st.sidebar.slider(
-    T["safe_util_limit"],
-    min_value=30,
-    max_value=95,
-    value=65,
-    step=5,
-    key="safe_util_limit",
-)
+    consolidation_ratio = st.sidebar.slider(
+        T["consolidation_ratio"],
+        min_value=0,
+        max_value=100,
+        value=70,
+        step=5,
+        key="consolidation_ratio",
+    )
 
-cooling_factor = st.sidebar.slider(
-    T["cooling_factor"],
-    min_value=0.0,
-    max_value=1.0,
-    value=0.30,
-    step=0.05,
-    key="cooling_factor",
-)
+    safe_util_limit = st.sidebar.slider(
+        T["safe_util_limit"],
+        min_value=30,
+        max_value=95,
+        value=70,
+        step=5,
+        key="safe_util_limit",
+    )
+
+    cooling_factor = st.sidebar.slider(
+        T["cooling_factor"],
+        min_value=0.0,
+        max_value=1.0,
+        value=0.30,
+        step=0.05,
+        key="cooling_factor",
+    )
 
 
 # ============================================================
 # Sidebar - Advanced
 # ============================================================
 
-render_sidebar_section(T["section_advanced"], T["section_advanced_desc"])
+if mode == "enhanced":
+    render_sidebar_section(T["section_advanced"], T["section_advanced_desc"])
 
-with st.sidebar.expander(T["section_advanced"], expanded=False):
-    migration_cost_multiplier = st.number_input(
-        T["migration_cost_multiplier"],
-        min_value=0.0,
-        max_value=10.0,
-        value=1.0,
-        step=0.1,
-        key="migration_cost_multiplier",
-    )
+    with st.sidebar.expander(T["section_advanced"], expanded=False):
+        migration_cost_multiplier = st.number_input(
+            T["migration_cost_multiplier"],
+            min_value=0.0,
+            max_value=10.0,
+            value=1.0,
+            step=0.1,
+            key="migration_cost_multiplier",
+        )
 
-    risk_cost_multiplier = st.number_input(
-        T["risk_cost_multiplier"],
-        min_value=0.0,
-        max_value=10.0,
-        value=1.0,
-        step=0.1,
-        key="risk_cost_multiplier",
-    )
+        risk_cost_multiplier = st.number_input(
+            T["risk_cost_multiplier"],
+            min_value=0.0,
+            max_value=10.0,
+            value=1.0,
+            step=0.1,
+            key="risk_cost_multiplier",
+        )
 
 
 # ============================================================
@@ -745,8 +762,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.caption(T["app_caption"])
-
 
 # ============================================================
 # Scenario summary before execution
@@ -770,10 +785,6 @@ st.markdown(
             <div class="scenario-item">
                 <div class="scenario-label">{T['label_price']}</div>
                 <div class="scenario-value">{electricity_price:,.2f}</div>
-            </div>
-            <div class="scenario-item">
-                <div class="scenario-label">{T['label_assets']}</div>
-                <div class="scenario-value">--</div>
             </div>
         </div>
     </div>
@@ -894,8 +905,10 @@ try:
     report = build_utilization_report(
         summary=summary,
         thresholds=thresholds,
+        mode=mode,
         lang=language,
         currency=T["currency"],
+        action_counts=action_counts,
     )
 
     st.success(T["analysis_done"])
@@ -903,34 +916,6 @@ try:
 except Exception as e:
     st.error(f"{T['simulation_failed']}: {e}")
     st.stop()
-
-
-# ============================================================
-# Model notice
-# ============================================================
-
-with st.expander(T["model_notice_title"], expanded=False):
-    st.write(mode_notice(mode))
-
-
-# ============================================================
-# Key metrics
-# ============================================================
-
-st.markdown(f"<div class='panel-title'>{T['key_metrics']}</div>", unsafe_allow_html=True)
-st.markdown(f"<div class='panel-subtitle'>{T['kpi_desc']}</div>", unsafe_allow_html=True)
-
-kpi1, kpi2, kpi3, kpi4 = st.columns(4)
-kpi1.metric(T["total_assets"], f"{summary['total_assets']} {T['assets_unit']}")
-kpi2.metric(T["low_util_assets"], f"{summary['low_util_assets']} {T['assets_unit']}")
-kpi3.metric(T["zombie_assets"], f"{summary['zombie_assets']} {T['assets_unit']}")
-kpi4.metric(T["candidate_assets"], f"{summary['candidate_assets']} {T['assets_unit']}")
-
-kpi5, kpi6, kpi7, kpi8 = st.columns(4)
-kpi5.metric(T["total_energy"], f"{fmt(summary['total_energy_kwh'], 0)} {T['kwh']}")
-kpi6.metric(T["waste_energy"], f"{fmt(summary['waste_energy_kwh'], 0)} {T['kwh']}")
-kpi7.metric(T["net_saving"], f"{T['currency']}{fmt(summary['net_saving_cost'], 0)}")
-kpi8.metric(T["annual_net_saving"], f"{T['currency']}{fmt(summary['annual_net_saving'], 0)}")
 
 
 # ============================================================
@@ -946,25 +931,39 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-col1, col2, col3 = st.columns(3)
 
-with col1:
-    st.markdown(f"<div class='comparison-title'>{T['current_asset_status']}</div>", unsafe_allow_html=True)
-    st.metric(T["post_utilization"], f"{fmt(summary['avg_utilization'], 2)} {T['percent']}")
-    st.metric(T["total_energy"], f"{fmt(summary['total_energy_kwh'], 0)} {T['kwh']}")
-    st.metric(T["top_waste_group"], summary["top_waste_group"])
+# ============================================================
+# Key metrics
+# ============================================================
 
-with col2:
-    st.markdown(f"<div class='comparison-title'>{T['consolidation_result']}</div>", unsafe_allow_html=True)
-    st.metric(T["shutdown_assets"], f"{summary['estimated_shutdown_assets']} {T['assets_unit']}")
-    st.metric(T["post_utilization"], f"{fmt(summary['post_avg_utilization'], 2)} {T['percent']}")
-    st.metric(T["gross_saving"], f"{T['currency']}{fmt(summary['gross_saving_cost'], 0)}")
+st.markdown(f"<div class='panel-title'>{T['key_metrics']}</div>", unsafe_allow_html=True)
+st.markdown(f"<div class='panel-subtitle'>{T['kpi_desc']}</div>", unsafe_allow_html=True)
 
-with col3:
-    st.markdown(f"<div class='comparison-title'>{T['economic_result']}</div>", unsafe_allow_html=True)
-    st.metric(T["net_saving"], f"{T['currency']}{fmt(summary['net_saving_cost'], 0)}")
-    st.metric(T["annual_net_saving"], f"{T['currency']}{fmt(summary['annual_net_saving'], 0)}")
-    st.metric(T["waste_energy"], f"{fmt(summary['waste_energy_kwh'], 0)} {T['kwh']}")
+if mode == "basic":
+    kpi1, kpi2, kpi3 = st.columns(3)
+    kpi1.metric(T["total_assets"], f"{summary['total_assets']} {T['assets_unit']}")
+    kpi2.metric(T["low_util_assets"], f"{summary['low_util_assets']} {T['assets_unit']}")
+    kpi3.metric(T["zombie_assets"], f"{summary['zombie_assets']} {T['assets_unit']}")
+
+    kpi4, kpi5, kpi6 = st.columns(3)
+    kpi4.metric(T["total_energy"], f"{fmt(summary['total_energy_kwh'], 0)} {T['kwh']}")
+    kpi5.metric(T["waste_energy"], f"{fmt(summary['waste_energy_kwh'], 0)} {T['kwh']}")
+    kpi6.metric(T["candidate_assets"], f"{summary['candidate_assets']} {T['assets_unit']}")
+else:
+    kpi1, kpi2, kpi3 = st.columns(3)
+    kpi1.metric(T["total_assets"], f"{summary['total_assets']} {T['assets_unit']}")
+    kpi2.metric(T["low_util_assets"], f"{summary['low_util_assets']} {T['assets_unit']}")
+    kpi3.metric(T["zombie_assets"], f"{summary['zombie_assets']} {T['assets_unit']}")
+
+    kpi4, kpi5, kpi6 = st.columns(3)
+    kpi4.metric(T["candidate_assets"], f"{summary['candidate_assets']} {T['assets_unit']}")
+    kpi5.metric(T["shutdown_assets"], f"{summary['estimated_shutdown_assets']} {T['assets_unit']}")
+    kpi6.metric(T["one_time_consolidation_cost"], money(summary["one_time_consolidation_cost"]))
+
+    kpi7, kpi8, kpi9 = st.columns(3)
+    kpi7.metric(T["cost_saving_ratio"], pct(summary["cost_saving_ratio"]))
+    kpi8.metric(T["annual_operating_saving"], money(summary["annual_operating_saving"]))
+    kpi9.metric(T["first_year_net_benefit"], money(summary["first_year_net_benefit"]))
 
 
 # ============================================================
@@ -977,48 +976,38 @@ chart_col1, chart_col2 = st.columns(2)
 
 with chart_col1:
     st.plotly_chart(
-        create_utilization_distribution(asset_metrics, T),
+        create_asset_status_pie(asset_metrics, T),
         use_container_width=True,
     )
 
 with chart_col2:
     st.plotly_chart(
-        create_energy_scatter(asset_metrics, T),
+        create_hourly_power_chart(hourly_power, T),
         use_container_width=True,
     )
 
-chart_col3, chart_col4 = st.columns(2)
+if mode in ["standard", "enhanced"]:
+    chart_col3, chart_col4 = st.columns(2)
 
-with chart_col3:
-    st.plotly_chart(
-        create_group_energy_chart(group_metrics, T),
-        use_container_width=True,
-    )
+    with chart_col3:
+        st.plotly_chart(
+            create_cost_saving_pie(summary, T),
+            use_container_width=True,
+        )
 
-with chart_col4:
-    st.plotly_chart(
-        create_zombie_top_chart(asset_metrics, T),
-        use_container_width=True,
-    )
+    with chart_col4:
+        st.plotly_chart(
+            create_annual_economics_bar(summary, T),
+            use_container_width=True,
+        )
 
-chart_col5, chart_col6 = st.columns(2)
 
-with chart_col5:
-    st.plotly_chart(
-        create_saving_waterfall(summary, T),
-        use_container_width=True,
-    )
+# ============================================================
+# Model notice
+# ============================================================
 
-with chart_col6:
-    st.plotly_chart(
-        create_action_category_chart(action_counts, T),
-        use_container_width=True,
-    )
-
-st.plotly_chart(
-    create_hourly_power_chart(hourly_power, T),
-    use_container_width=True,
-)
+with st.expander(T["model_notice_title"], expanded=False):
+    st.write(mode_notice(mode))
 
 
 # ============================================================
@@ -1026,40 +1015,28 @@ st.plotly_chart(
 # ============================================================
 
 st.markdown(f"<div class='panel-title'>{T['report_title']}</div>", unsafe_allow_html=True)
+st.markdown(f"<div class='panel-subtitle'>{T['report_desc']}</div>", unsafe_allow_html=True)
 
-report_tab1, report_tab2, report_tab3, report_tab4 = st.tabs(
-    [
-        T["summary_tab"],
-        T["economic_tab"],
-        T["decision_tab"],
-        T["risk_tab"],
-    ]
-)
+report_sections = report.get("sections", [])
 
-with report_tab1:
-    st.subheader(report["summary_title"])
-    st.write(report["summary"])
-    st.write(report["savings_summary"])
+if report_sections:
+    report_tabs = st.tabs([section.get("tab", T["summary_tab"]) for section in report_sections])
 
-    st.markdown(f"**{report['advanced_title']}**")
-    for item in report["insights"]:
-        st.write(f"- {item}")
+    for report_tab, section in zip(report_tabs, report_sections):
+        with report_tab:
+            if section.get("title"):
+                st.subheader(section["title"])
 
-with report_tab2:
-    st.subheader(report["economic_title"])
-    for item in report["economic_items"]:
-        st.write(f"- {item}")
+            if section.get("body"):
+                st.write(section["body"])
 
-with report_tab3:
-    st.subheader(report["decision_title"])
-    for item in report["decision_items"]:
-        st.write(f"- {item}")
+            if section.get("warning"):
+                st.warning(section["warning"])
 
-with report_tab4:
-    st.subheader(report["risk_title"])
-    st.warning(report["risk_text"])
-    for item in report["risk_items"]:
-        st.write(f"- {item}")
+            for item in section.get("items", []):
+                st.write(f"- {item}")
+else:
+    st.info(T["report_empty"])
 
 
 # ============================================================
@@ -1141,12 +1118,11 @@ with st.expander(T["detailed_tables"], expanded=False):
             "avg_utilization",
             "post_avg_utilization",
             "saving_energy_kwh",
-            "saving_cost",
-            "cooling_saving_cost",
-            "migration_cost",
-            "restart_risk_cost",
-            "net_saving_cost",
-            "annual_net_saving",
+            "baseline_cost",
+            "cost_saving_ratio",
+            "annual_operating_saving",
+            "one_time_consolidation_cost",
+            "first_year_net_benefit",
         ]
 
         group_table = rename_columns_for_display(group_consolidation, T, group_cols)

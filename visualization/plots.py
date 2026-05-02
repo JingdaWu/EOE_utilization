@@ -27,41 +27,165 @@ def _transparent_layout(fig: go.Figure, title: str) -> go.Figure:
     return fig
 
 
+def create_asset_status_pie(asset_df: pd.DataFrame, text: dict) -> go.Figure:
+    """Create a mutually exclusive asset-status pie chart.
+
+    Important: suspected zombie assets are a subset of low-utilization assets in the
+    detection logic, so the chart must count them first and then count only the
+    remaining low-utilization assets. This avoids double counting.
+    """
+    if asset_df.empty:
+        fig = go.Figure()
+        return _transparent_layout(fig, text["chart_asset_status_pie"])
+
+    zombie_count = int(asset_df["is_zombie"].sum()) if "is_zombie" in asset_df.columns else 0
+
+    if "is_low_util" in asset_df.columns and "is_zombie" in asset_df.columns:
+        low_non_zombie_count = int((asset_df["is_low_util"] & (~asset_df["is_zombie"])).sum())
+    elif "is_low_util" in asset_df.columns:
+        low_non_zombie_count = int(asset_df["is_low_util"].sum())
+    else:
+        low_non_zombie_count = 0
+
+    total_assets = int(len(asset_df))
+    normal_count = max(total_assets - zombie_count - low_non_zombie_count, 0)
+
+    plot_df = pd.DataFrame(
+        {
+            "status": [
+                text["asset_status_normal"],
+                text["asset_status_low_util"],
+                text["asset_status_zombie"],
+            ],
+            "asset_count": [normal_count, low_non_zombie_count, zombie_count],
+        }
+    )
+    plot_df = plot_df[plot_df["asset_count"] > 0]
+
+    fig = px.pie(
+        plot_df,
+        names="status",
+        values="asset_count",
+        hole=0.42,
+    )
+    fig.update_traces(textposition="inside", textinfo="percent+label")
+
+    return _transparent_layout(fig, text["chart_asset_status_pie"])
+
+
+def create_cost_saving_pie(summary: dict, text: dict) -> go.Figure:
+    """Show annual operating saving as a share of annualized baseline electricity cost."""
+    annualization_factor = float(summary.get("annualization_factor", 1) or 1)
+    baseline_cost = float(summary.get("baseline_cost", summary.get("total_cost", 0)) or 0)
+    annual_baseline_cost = max(baseline_cost * annualization_factor, 0)
+    annual_operating_saving = max(float(summary.get("annual_operating_saving", 0) or 0), 0)
+
+    # The saving share should never exceed the full annualized electricity baseline.
+    annual_operating_saving = min(annual_operating_saving, annual_baseline_cost)
+    remaining_cost = max(annual_baseline_cost - annual_operating_saving, 0)
+
+    plot_df = pd.DataFrame(
+        {
+            "category": [
+                text["annual_operating_saving"],
+                text["annual_remaining_cost"],
+            ],
+            "cost": [annual_operating_saving, remaining_cost],
+        }
+    )
+    plot_df = plot_df[plot_df["cost"] > 0]
+
+    fig = px.pie(
+        plot_df,
+        names="category",
+        values="cost",
+        hole=0.42,
+    )
+    fig.update_traces(textposition="inside", textinfo="percent+label")
+
+    return _transparent_layout(fig, text["chart_cost_saving_pie"])
+
+
+def create_annual_economics_bar(summary: dict, text: dict) -> go.Figure:
+    """Show one-time cost as negative and annualized benefits as positive/negative values."""
+    one_time_cost = float(summary.get("one_time_consolidation_cost", 0) or 0)
+    annual_saving = float(summary.get("annual_operating_saving", 0) or 0)
+    first_year_net = float(summary.get("first_year_net_benefit", 0) or 0)
+
+    plot_df = pd.DataFrame(
+        {
+            "item": [
+                text["one_time_consolidation_cost"],
+                text["annual_operating_saving"],
+                text["first_year_net_benefit"],
+            ],
+            "value": [-one_time_cost, annual_saving, first_year_net],
+        }
+    )
+
+    fig = px.bar(
+        plot_df,
+        x="item",
+        y="value",
+        labels={"item": "", "value": text["y_cost"]},
+    )
+    fig.add_hline(y=0, line_width=1)
+    fig.update_xaxes(title="", tickangle=0)
+    fig.update_yaxes(title=text["y_cost"])
+
+    return _transparent_layout(fig, text["chart_annual_economics_bar"])
+
+
+def create_hourly_power_chart(hourly_df: pd.DataFrame, text: dict) -> go.Figure:
+    if hourly_df.empty:
+        fig = go.Figure()
+        return _transparent_layout(fig, text["chart_hourly_load"])
+
+    fig = px.line(
+        hourly_df,
+        x="timestamp",
+        y="total_power_kw",
+        labels={
+            "timestamp": text["x_time"],
+            "total_power_kw": text["y_power"],
+        },
+    )
+
+    fig.update_traces(line=dict(width=2.4))
+    fig.update_xaxes(title=text["x_time"])
+    fig.update_yaxes(title=text["y_power"])
+
+    return _transparent_layout(fig, text["chart_hourly_load"])
+
+
+# ============================================================
+# Legacy chart helpers retained for optional future reuse.
+# They are no longer called by app.py in the simplified executive UI.
+# ============================================================
+
+
 def create_utilization_distribution(asset_df: pd.DataFrame, text: dict) -> go.Figure:
     fig = px.histogram(
         asset_df,
         x="avg_utilization",
         nbins=18,
-        labels={
-            "avg_utilization": text["x_util"],
-            "count": text["y_count"],
-        },
+        labels={"avg_utilization": text["x_util"], "count": text["y_count"]},
     )
-
     fig.update_traces(marker_line_width=0.4, opacity=0.85)
     fig.update_xaxes(title=text["x_util"])
     fig.update_yaxes(title=text["y_count"])
-
     return _transparent_layout(fig, text["chart_util_distribution"])
 
 
 def create_energy_scatter(asset_df: pd.DataFrame, text: dict) -> go.Figure:
     color_col = "action_category" if "action_category" in asset_df.columns else "is_zombie"
-
     fig = px.scatter(
         asset_df,
         x="avg_utilization",
         y="energy_kwh",
         size="waste_cost",
         color=color_col,
-        hover_data=[
-            "asset_id",
-            "asset_type",
-            "group",
-            "avg_utilization",
-            "energy_kwh",
-            "waste_cost",
-        ],
+        hover_data=["asset_id", "asset_type", "group", "avg_utilization", "energy_kwh", "waste_cost"],
         labels={
             "avg_utilization": text["x_util"],
             "energy_kwh": text["x_energy"],
@@ -71,11 +195,9 @@ def create_energy_scatter(asset_df: pd.DataFrame, text: dict) -> go.Figure:
             "group": text["group"],
         },
     )
-
     fig.update_traces(marker=dict(opacity=0.72, line=dict(width=0.3)))
     fig.update_xaxes(title=text["x_util"])
     fig.update_yaxes(title=text["x_energy"])
-
     return _transparent_layout(fig, text["chart_energy_scatter"])
 
 
@@ -85,38 +207,14 @@ def create_group_energy_chart(group_df: pd.DataFrame, text: dict) -> go.Figure:
         return _transparent_layout(fig, text["chart_group_energy"])
 
     plot_df = group_df.sort_values("total_energy_kwh", ascending=False).head(12)
-
     fig = go.Figure()
-
-    fig.add_trace(
-        go.Bar(
-            x=plot_df["group"],
-            y=plot_df["total_energy_kwh"],
-            name=text["total_energy"],
-        )
-    )
-
-    fig.add_trace(
-        go.Bar(
-            x=plot_df["group"],
-            y=plot_df["waste_cost"],
-            name=text["waste_cost"],
-            yaxis="y2",
-            opacity=0.65,
-        )
-    )
-
+    fig.add_trace(go.Bar(x=plot_df["group"], y=plot_df["total_energy_kwh"], name=text["total_energy"]))
+    fig.add_trace(go.Bar(x=plot_df["group"], y=plot_df["waste_cost"], name=text["waste_cost"], yaxis="y2", opacity=0.65))
     fig.update_layout(
         yaxis=dict(title=text["y_energy"]),
-        yaxis2=dict(
-            title=text["y_cost"],
-            overlaying="y",
-            side="right",
-            showgrid=False,
-        ),
+        yaxis2=dict(title=text["y_cost"], overlaying="y", side="right", showgrid=False),
         barmode="group",
     )
-
     fig.update_xaxes(title=text["x_group"])
     return _transparent_layout(fig, text["chart_group_energy"])
 
@@ -142,53 +240,22 @@ def create_zombie_top_chart(asset_df: pd.DataFrame, text: dict) -> go.Figure:
         plot_df,
         x="asset_id",
         y="waste_cost",
-        hover_data=[
-            "asset_type",
-            "group",
-            "avg_utilization",
-            "energy_kwh",
-            "waste_cost",
-        ],
-        labels={
-            "asset_id": text["x_asset"],
-            "waste_cost": text["y_cost"],
-        },
+        hover_data=["asset_type", "group", "avg_utilization", "energy_kwh", "waste_cost"],
+        labels={"asset_id": text["x_asset"], "waste_cost": text["y_cost"]},
     )
-
     fig.update_xaxes(title=text["x_asset"])
     fig.update_yaxes(title=text["y_cost"])
-
     return _transparent_layout(fig, text["chart_zombie_top"])
 
 
 def create_saving_waterfall(summary: dict, text: dict) -> go.Figure:
-    labels = [
-        text["saving_cost"],
-        text["cooling_saving_cost"],
-        text["migration_cost"],
-        text["restart_risk_cost"],
-        text["net_saving"],
-    ]
-
+    labels = [text["annual_operating_saving"], text["one_time_consolidation_cost"], text["first_year_net_benefit"]]
     values = [
-        summary.get("saving_cost", 0),
-        summary.get("cooling_saving_cost", 0),
-        -summary.get("migration_cost", 0),
-        -summary.get("restart_risk_cost", 0),
-        summary.get("net_saving_cost", 0),
+        summary.get("annual_operating_saving", 0),
+        -summary.get("one_time_consolidation_cost", 0),
+        summary.get("first_year_net_benefit", 0),
     ]
-
-    measures = ["relative", "relative", "relative", "relative", "total"]
-
-    fig = go.Figure(
-        go.Waterfall(
-            x=labels,
-            y=values,
-            measure=measures,
-            connector={"line": {"width": 1}},
-        )
-    )
-
+    fig = go.Figure(go.Waterfall(x=labels, y=values, measure=["relative", "relative", "total"], connector={"line": {"width": 1}}))
     fig.update_yaxes(title=text["y_cost"])
     return _transparent_layout(fig, text["chart_saving_waterfall"])
 
@@ -202,11 +269,7 @@ def create_action_category_chart(action_df: pd.DataFrame, text: dict) -> go.Figu
         action_df,
         x="action_category",
         y="asset_count",
-        hover_data=[
-            "avg_risk_score",
-            "total_waste_cost",
-            "total_energy_kwh",
-        ],
+        hover_data=["avg_risk_score", "total_waste_cost", "total_energy_kwh"],
         labels={
             "action_category": text["action_category"],
             "asset_count": text["y_count"],
@@ -215,30 +278,6 @@ def create_action_category_chart(action_df: pd.DataFrame, text: dict) -> go.Figu
             "total_energy_kwh": text["energy_kwh"],
         },
     )
-
     fig.update_xaxes(title="", tickangle=20)
     fig.update_yaxes(title=text["y_count"])
-
     return _transparent_layout(fig, text["chart_action_category"])
-
-
-def create_hourly_power_chart(hourly_df: pd.DataFrame, text: dict) -> go.Figure:
-    if hourly_df.empty:
-        fig = go.Figure()
-        return _transparent_layout(fig, text["chart_hourly_load"])
-
-    fig = px.line(
-        hourly_df,
-        x="timestamp",
-        y="total_power_kw",
-        labels={
-            "timestamp": text["x_time"],
-            "total_power_kw": text["y_power"],
-        },
-    )
-
-    fig.update_traces(line=dict(width=2.4))
-    fig.update_xaxes(title=text["x_time"])
-    fig.update_yaxes(title=text["y_power"])
-
-    return _transparent_layout(fig, text["chart_hourly_load"])

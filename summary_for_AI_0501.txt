@@ -1,4 +1,4 @@
-数据中心利用率与资源优化 Streamlit Demo 项目 Summary for AI
+数据中心利用率与资源优化 Streamlit Demo 项目 Summary for AI（新版）
 
 一、项目定位
 
@@ -6,11 +6,11 @@
 
 用户正在开发一个面向数据中心和高能耗数字基础设施的作品集型 Streamlit demo，用于求职展示。这个 demo 的目标不是成为真实数据中心运维系统，而是作为个人作品集的一部分，展示用户具备“数据中心能耗分析、资源利用率优化、节能经济性评估、管理决策输出”的产品化能力。
 
-核心展示逻辑是：
+核心展示逻辑：
 
 上传资产利用率数据 CSV
 → 识别低利用率资产和疑似僵尸资产
-→ 估算这些资产造成的隐性能耗浪费和电费浪费
+→ 估算隐性能耗浪费和电费浪费
 → 估算资源整合、迁移、关停评估后的节能收益
 → 输出管理者和投资人能看懂的图表、KPI 和自动分析报告。
 
@@ -25,7 +25,7 @@
 
 二、当前项目结构
 
-当前建议项目结构为：
+当前项目结构为：
 
 data_center_utilization_demo/
 │
@@ -53,15 +53,13 @@ data_center_utilization_demo/
     └── config.toml
 
 
-三、已经完成的文件与功能
+三、当前已经实现的功能
 
 1. sample/sample_utilization_template.csv
 
-已独立放置 CSV 模板 / 样品数据文件。
+模板 CSV 独立放在 sample 文件夹中，不再由 sample_data.py 动态生成。
 
-这个文件不再由 sample_data.py 动态生成，而是作为真实存在的模板文件放在 sample 文件夹中。
-
-模板字段包括：
+字段包括：
 
 timestamp
 asset_id
@@ -79,7 +77,9 @@ migratable
 migration_cost
 restart_risk_cost
 
-左侧工具栏中“下载模板”按钮会读取这个 CSV 文件。
+左侧工具栏中“下载模板”按钮读取这个 CSV 文件。
+
+注意：用户后来指出，模板中 migration_cost 和 restart_risk_cost 设置过高，会导致几小时或短周期样本中节省几元电费，但迁移/风险成本几百元，净收益为负。这对 demo 展示不利。后续应把模板中的 migration_cost 和 restart_risk_cost 默认改为 0，或者极小值。推荐全部改为 0。
 
 
 2. core/data_loader.py
@@ -99,99 +99,101 @@ restart_risk_cost
 估算时间步长；
 估算分析周期天数。
 
-目前只允许上传 CSV，不再支持 Excel。用户希望 demo 更简洁。
+当前只允许上传 CSV，不支持 Excel。用户希望 demo 更简洁。
 
 
 3. core/metrics.py
 
-负责计算资产级、分组级、类型级指标。
+负责资产、分组、类型维度的利用率分析。
 
 资产级指标包括：
 
-平均利用率
-最大利用率
-最小利用率
-P90 / P95 利用率
-高负载时段占比
-平均内存利用率
-平均磁盘 IO
-平均网络 IO
-是否低利用率
-是否基础疑似僵尸
-是否有隐藏活动
-是否业务保护资产
-是否可迁移
-最终是否疑似僵尸
+avg_utilization
+max_utilization
+min_utilization
+p90_utilization
+p95_utilization
+high_load_duty
+avg_memory_utilization
+avg_disk_io
+avg_network_io
+is_low_util
+is_zombie_basic
+has_hidden_activity
+is_business_protected
+is_migratable
+is_zombie
 
-判断逻辑：
+当前判断逻辑：
 
 is_low_util = avg_utilization < low_util_threshold
 
-is_zombie_basic = avg_utilization < low_util_threshold
-                  and high_load_duty < high_duty_threshold
+is_zombie_basic =
+    avg_utilization < low_util_threshold
+    and high_load_duty < high_duty_threshold
 
-is_zombie = is_zombie_basic
-            and not has_hidden_activity
-            and not is_business_protected
+is_zombie =
+    is_zombie_basic
+    and not has_hidden_activity
+    and not is_business_protected
 
-其中隐藏活动通过内存、磁盘 IO、网络 IO 辅助判断。
+隐藏活动通过内存、磁盘 IO、网络 IO 判断。
 
-分组级和类型级会统计：
+用户后来提出：低利用率资产和疑似僵尸资产的定义不够清楚，页面上必须明确解释，否则别人会不理解“凭什么这样判断”。后续应在“模型说明”或类似折叠栏中加入定义：
 
-资产数量
-平均利用率
-低利用率资产数
-疑似僵尸资产数
-总耗电量
-总电费
-潜在浪费电量
-潜在浪费电费
-低利用率资产占比
-疑似僵尸资产占比
+低利用率资产：
+分析周期内平均利用率低于设定阈值的资产。
+
+疑似僵尸资产：
+满足低利用率条件，同时活跃时段占比低于设定上限，并且未发现明显内存、磁盘 IO、网络 IO 活动，且不属于业务保护资产的资产。
+
+候选资产：
+疑似僵尸资产中，同时满足可迁移且非业务保护的资产。
+
+同时要强调：
+低利用率资产和疑似僵尸资产只是优先排查对象，不是自动关停对象。
 
 
 4. core/power_model.py
 
 负责功率、电量、电费估算。
 
-核心逻辑：
+核心公式：
 
-estimated_power_w = power_idle + (power_peak - power_idle) * utilization_fraction
+资产功率 = 空闲功率 + (满载功率 - 空闲功率) × 利用率
 
-然后转换为 kW，再按时间步长计算 kWh。
+输出包括：
 
-注意：当前代码里转换方式是：
+estimated_power_kw
+energy_kwh
+avg_power_kw
+peak_power_kw
+cost
+waste_energy_kwh
+waste_cost
+hourly_power
 
-estimated_power_kw = estimated_power_w / 100
-estimated_power_kw = estimated_power_kw / 10
+注意：当前代码中功率从 W 转 kW 的写法可能是先 /100 再 /10，等价于 /1000，结果正确但写法不优雅。可以后续顺手改成 /1000。
 
-这等价于除以 1000。写法有点奇怪但结果正确。后续可优化成 estimated_power_w / 1000，但目前功能不需要改。
-
-还会计算：
-
-平均功率
-峰值功率
-最小功率
-资产周期耗电量
-资产周期电费
-疑似僵尸资产对应的浪费电量和浪费电费
-按时间汇总的总功率曲线
+用户提出：
+周期内的收益、支出金额对管理者意义不大，因为样本周期可能很短。后台变量可以保留，但页面和报告中不应重点显示“本周期省了几元 / 本周期花了几元”，应改为展示年度运营节省、一次性整合成本和首年净收益。
 
 
 5. core/consolidation.py
 
-负责中级功能：资源整合测算。
+负责中级整合收益测算，也是当前发现的重要 bug 所在。
 
-核心功能：
+当前逻辑：
 
-筛选可整合候选资产：
+先筛候选资产：
 is_zombie = True
 is_migratable = True
 is_business_protected = False
 
-按整合率 consolidation_ratio 选出理论可下线 / 可迁移评估资产。
+再按整合比例 consolidation_ratio 选出理论可下线/可迁移评估资产。
 
-同时受 safe_util_limit 限制：整合后平均利用率不能超过安全上限。
+同时受 safe_util_limit 限制：
+整合后平均利用率不能超过目标上限。
 
 输出：
 
@@ -211,30 +213,64 @@ annual_net_saving
 total_capacity
 remaining_capacity
 
-也支持按 group 分组计算整合收益。
+用户发现重要 bug：
+当前年度净节省计算错误，表现为：
+理论净节省为 -398，但年度净节省显示 -697,213。原因是系统把“周期净节省”乘以年化系数，而周期净节省中已经扣除了一次性迁移成本和风险成本，导致一次性成本被错误年化。
+
+当前错误逻辑大概是：
+
+周期净节省 = 周期运营节省 - 一次性成本
+年度净节省 = 周期净节省 × 年化系数
+
+这是错误的。
+
+正确逻辑应该是：
+
+周期运营节省 = 设备侧节省 + 冷却侧节省
+
+一次性整合成本 = 迁移成本 + 风险成本
+
+年度运营节省 = 周期运营节省 × 年化系数
+
+首年净收益 = 年度运营节省 - 一次性整合成本
+
+迁移成本和风险成本是一次性成本，不应该随着样本周期年化。
+
+后续应在 core/consolidation.py 中修改公式，并建议输出新变量：
+
+period_operating_saving
+annual_operating_saving
+one_time_consolidation_cost
+first_year_net_benefit
+
+原来的 gross_saving_cost、net_saving_cost、annual_net_saving 可以保留兼容，但页面上建议逐步改用新变量。
 
 
-6. core/risk_scoring.py
+6. core/summary.py
 
-负责高级展示功能：风险评分与动作建议。
+负责把 consolidation.py、metrics.py、power_model.py 的结果整理成 summary 字典。
 
-主要基于：
+公式 bug 修复后，summary.py 也必须同步改，加入：
 
-CPU/设备平均利用率
-高负载时段占比
-内存利用率
-磁盘 IO
-网络 IO
-业务保护
-可迁移性
+period_operating_saving
+annual_operating_saving
+one_time_consolidation_cost
+first_year_net_benefit
 
-生成：
+页面和报告应尽量展示年度运营节省、一次性整合成本、首年净收益，而不是短周期收益。
+
+
+7. core/risk_scoring.py
+
+负责增强模式中的风险评分和动作建议。
+
+当前输出：
 
 risk_score
 priority_level
 action_category
 
-action_category 包括类似：
+action_category 包括：
 
 Immediate Shutdown Assessment
 Migration / Consolidation Candidate
@@ -243,130 +279,115 @@ Protected / Validate Only
 Utilization Watchlist
 Normal Operation
 
-这是为了给管理层展示“不是直接关停，而是优先排查和分级处理”。
+用户后来问整合率 50% 时后台如何决定哪些设备被整合。
 
+当前整合决策逻辑如下：
 
-7. core/summary.py
+第一步：筛候选资产
+必须同时满足：
+1. 疑似僵尸资产
+2. migratable = Yes
+3. business_critical = No
 
-负责汇总所有结果，用于 KPI 和报告。
+第二步：排序
+增强模式下按：
+risk_score 从高到低
+avg_utilization 从低到高
+energy_kwh 从高到低
 
-输出：
+基础/标准模式下按：
+avg_utilization 从低到高
+energy_kwh 从高到低
 
-分析周期
-年化系数
-资产总数
-低利用率资产数
-疑似僵尸资产数
-业务保护资产数
-可迁移资产数
-低利用率资产占比
-疑似僵尸资产占比
-平均利用率
-P95 利用率
-总耗电量
-总电费
-潜在浪费电量
-潜在浪费电费
-候选资产数量
-理论可下线资产
-整合后平均利用率
-节省电量
-设备侧节省
-冷却联动节省
-迁移成本
-重启风险成本
-综合节省
-净节省
-年度综合节省
-年度净节省
-主要浪费分组
+第三步：根据整合比例设定最多选择数量
+例如候选资产 20 台，整合率 50%，则最多选择 floor(20 × 50%) = 10 台。
 
-还会生成：
+第四步：安全利用率约束
+每加入一台候选资产，系统重新计算整合后平均利用率。如果超过安全上限，则不纳入。
 
-优先排查清单
-管理动作分类汇总
+结论：
+当前逻辑是自洽的，可以保留。
+但文案上 risk_score 容易误解为“迁移风险越高”，而实际上它更像“整合优先级评分”。后续建议把 risk_score 改名为：
+
+中文：整合优先级评分
+英文：Consolidation Priority Score
+
+用户后来表示听不懂底层逻辑，只要现在逻辑自洽就行。因此短期可不改排序逻辑，只需要在页面文案上避免误解。
 
 
 8. report.py
 
-负责中英文自动报告文本。
+负责中英文自动报告。
 
-现在 app.py 不直接写报告内容，而是通过 report.py 的 build_utilization_report() 根据 summary 和 thresholds 生成。
-
-报告分为四个 tab：
+当前报告分为：
 
 摘要
 经济性
 决策建议
 风险提示
 
-中文和英文都已写好初版。
+后续需要修改：
 
-中文报告主要表达：
+减少对“本周期节省几元 / 本周期电费几元”的强调；
+强调年度运营节省；
+强调一次性整合成本；
+强调首年净收益；
+强调低利用率/疑似僵尸资产只是优先排查对象；
+强调模型不是自动关停指令。
 
-本次分析覆盖多少资产
-分析周期
-平均利用率
-低利用率资产数量
-疑似僵尸资产数量
-潜在浪费电量
-浪费电费
-当前整合假设下的候选资产和理论下线数量
-整合后平均利用率
-设备侧节省、冷却联动节省、净节省、年度净节省
-建议优先排查标准
-风险提示：低利用率不等于可立即关停
+中文报告建议逻辑：
 
-用户后续计划精修中文内容，再让我帮他改英文表述。
+按当前样本折算，年度运营节省约 XX 元；
+考虑一次性整合成本后，首年净收益约 XX 元；
+后续年份若运行状态稳定，可持续获得运营节省；
+建议优先排查低利用率、低活跃时段占比且无明显 IO 活动的资产；
+低利用率资产不等于可立即关停。
 
 
 9. i18n.py
 
 负责中英文 UI 文案。
 
-重要要求：
+用户指出多个中文翻译不够地道，后续建议统一改成：
 
-app.py 中尽量不要直接写中文/英文；
-所有 UI 文案尽量放 i18n.py；
-报告类长文本放 report.py。
+高负载阈值 % → 活跃利用率阈值 %
+英文：Active Utilization Threshold %
 
-当前 i18n.py 已包含：
+高负载时段占比阈值 % → 活跃时段占比上限 %
+英文：Active Time Ratio Limit %
 
-页面标题
-侧边栏标题
-数据上传区
-分析模式
-阈值参数
-功率与电价参数
-整合假设
-高级假设
-运行按钮
-空状态提示
-场景摘要
-模型说明
-KPI 名称
-图表标题
-坐标轴名称
-表格列名
-报告 tab 名称
-单位
-中英文切换按钮
+默认空闲功率 W → 缺失时默认空闲功率 W
+英文：Fallback Idle Power W
 
-特别注意：
+默认满载功率 W → 缺失时默认满载功率 W
+英文：Fallback Peak Power W
 
-“综合电价”已经改为“加权平均电价”。
-英文为 Weighted Average Electricity Price。
+理论整合率 % → 候选资产整合比例 %
+英文：Candidate Consolidation Ratio %
 
-用户决定不做峰谷电价，因为这个模块不是储能调度模块，使用加权平均电价更稳。
+整合后安全利用率上限 % → 整合后目标利用率上限 %
+英文：Post-consolidation Utilization Limit %
+
+冷却联动系数 → 冷却节能折算系数
+英文：Cooling Saving Factor
+
+迁移成本放大系数 → 迁移成本情景系数
+英文：Migration Cost Scenario Factor
+
+风险成本放大系数 → 风险成本情景系数
+英文：Risk Cost Scenario Factor
+
+年度净节省 → 首年净收益 或 年度运营节省 / 首年净收益分开显示
+英文：First-year Net Benefit / Annual Operating Saving
+
+低利用率资产、疑似僵尸资产、候选资产的定义也要加到 i18n.py 或 report.py 中，供页面“模型说明”调用。
 
 
 10. visualization/plots.py
 
 负责图表。
 
-目前使用 Plotly，不是 Matplotlib。
-
-已有图表：
+当前有：
 
 资产平均利用率分布
 平均利用率 - 耗电量散点图
@@ -376,35 +397,23 @@ KPI 名称
 管理动作分类图
 总功率时间序列
 
-图表风格为 plotly_dark，透明背景，适配暗色 UI。
+后续可能要改：
 
-用户后续计划继续精修图表风格。
+节省收益瀑布图中的字段要跟新经济性口径一致：
+年度运营节省
+一次性整合成本
+首年净收益
 
-
-11. .streamlit/config.toml
-
-已生成暗色主题配置：
-
-[theme]
-base = "dark"
-primaryColor = "#00AEEF"
-backgroundColor = "#0B0F14"
-secondaryBackgroundColor = "#151A21"
-textColor = "#E6EDF3"
-font = "sans serif"
-
-该风格参考了用户此前另一个已经打磨完成的 Streamlit demo。
+如果用户觉得某些图不需要显示，应优先在 app.py 中隐藏，不必删除 plots.py 函数。
 
 
-12. app.py
-
-当前 app.py 已整合所有功能，且 UI 向用户提供的参考 app.py 靠近。
+11. app.py
 
 当前页面逻辑：
 
-左侧工具栏：
+左侧：
 语言切换
-数据输入：上传 CSV + 下载模板，左右并排
+数据输入：上传 CSV + 下载模板
 分析模式：基础 / 标准 / 增强
 识别阈值
 功率与电价
@@ -412,157 +421,251 @@ font = "sans serif"
 高级假设
 开始测试按钮
 
-注意：
-已删除“使用样品数据 checkbox”。
-现在只允许上传 CSV。
-下载模板按钮保留，但布局更克制。
-
-右侧未运行时：
+右侧未运行：
 Hero 区
 场景摘要
 空状态提示
 
 右侧运行后：
-Hero 区
-当前分析场景
 核心 KPI
 结果概览
 图表分析
 自动分析报告
 详细数据表折叠栏
 
-重要修改：
-上传 CSV 后，不点“开始测试”不会计算结果。
-删除原始 CSV 的“数据预览”扩展栏。
-资产分析清单、优先排查清单、分组表、类型表已放到最后的“详细数据表”折叠栏中。
+已经根据用户之前意见做过以下修改：
+
+删除“使用样品数据 checkbox”；
+只允许上传 CSV；
+上传 CSV 后不点“开始测试”不出结果；
+删除原始 CSV 数据预览；
+资产清单、优先排查清单、分组表、类型表放到“详细数据表”折叠栏；
 删除所有结果 CSV 下载按钮，只保留模板下载。
 
+用户后来提出新 UI 逻辑问题：
+如果选择基础模式，就不应该显示一堆标准/高级参数。否则用户会疑惑：我已经选了简单模式，为什么还要输入复杂参数？
 
-四、当前 app.py 的主要交互逻辑
+后续 app.py 应改成渐进式输入：
 
-用户必须上传 CSV，然后点击左侧最下方“开始测试”。
+基础模式只显示：
+数据输入
+分析模式
+低利用率阈值
+活跃利用率阈值
+活跃时段占比上限
+缺失时默认空闲功率
+缺失时默认满载功率
+加权平均电价
+开始测试
 
-未点击按钮时：
+标准模式额外显示：
+候选资产整合比例
+整合后目标利用率上限
+冷却节能折算系数
 
-不读取 CSV；
-不清洗数据；
-不计算；
-不展示结果。
+增强模式再额外显示：
+迁移成本情景系数
+风险成本情景系数
 
-点击按钮后才执行：
+后台变量可以保留默认值，避免报错，例如：
+consolidation_ratio = 70
+safe_util_limit = 70
+cooling_factor = 0.30
+migration_cost_multiplier = 1.0
+risk_cost_multiplier = 1.0
 
-read_uploaded_file
-clean_utilization_data
-estimate_time_step_hours
-get_analysis_period_days
-apply_power_model
-calculate_energy_by_time
-calculate_asset_metrics
-attach_energy_cost_to_asset_metrics
-calculate_risk_score（仅增强模式）
-calculate_consolidation
-calculate_group_metrics
-calculate_type_metrics
-calculate_summary
-build_priority_asset_list
-build_management_action_counts
-build_utilization_report
-
-然后展示 KPI、图表、报告、详细表格。
+这样基础模式不显示复杂参数，但后台仍有默认值可用。
 
 
-五、当前功能边界
+四、关于参数默认值的新判断
 
-已实现：
+用户问：
 
-上传 CSV
-下载 CSV 模板
-中英文切换
-基础模式
-标准模式
-增强模式
-低利用率识别
-疑似僵尸资产识别
-业务保护资产排除
-可迁移性判断
-内存 / IO 辅助判断
-功率估算
-耗电量估算
-电费估算
-冷却联动节省
-资源整合率
-整合后安全利用率约束
+1. 高负载阈值默认 40% 是不是太低？
+结论：
+如果叫“高负载阈值”，40% 偏低；
+但实际逻辑是判断“是否明显活跃过”，所以应改名为“活跃利用率阈值”，默认 40% 可以保留。
+
+2. 高负载时段占比阈值默认 5% 是不是太低？
+结论：
+如果理解为“高负载占比”可能困惑；
+实际含义是“活跃时间太少就可能是闲置”，所以应改名为“活跃时段占比上限”，默认 5% 可以保留。
+
+3. 默认空闲功率和满载功率是什么意思？
+结论：
+CSV 中如果有 power_idle 和 power_peak，就优先使用 CSV 的值。
+左侧默认值只是 CSV 缺失时兜底。
+因此应改名为“缺失时默认空闲功率 / 缺失时默认满载功率”。
+
+4. 理论整合率是什么意思？
+结论：
+不是所有资产中有多少被整合，而是在“候选资产”中，有多少比例被纳入整合/下线评估。
+应改名为“候选资产整合比例”。
+
+5. 整合后安全利用率上限默认 65% 是否太低？
+结论：
+65% 不低，比较保守。
+为了 demo 展示和管理者理解，可以调到 70%。
+不建议默认 80% 以上，太激进。
+
+6. 理论整合率默认 100% 是否更符合实际？
+结论：
+不建议默认 100%。虽然部分虚拟化环境中很多资源可以迁移，但现实中有业务保护、许可证绑定、固定 IP、备份、监控、低频任务、不可迁移资产等限制。
+默认 70% 更稳，可允许用户手动调到 100%。
+
+建议默认值：
+
+低利用率阈值：10%
+活跃利用率阈值：40%
+活跃时段占比上限：5%
+候选资产整合比例：70%
+整合后目标利用率上限：70%
+冷却节能折算系数：0.30
+迁移成本情景系数：1.0
+风险成本情景系数：1.0
+
+模板中 migration_cost 和 restart_risk_cost：默认 0
+
+
+五、关于迁移成本和风险成本的新判断
+
+用户认为：
+实际数据中心中迁移可能不花钱，只要不把设备弄坏就没有风险成本。
+
+反馈结论：
+用户直觉基本正确，尤其对于虚拟机/容器迁移，直接现金成本可能接近 0。
+迁移成本更多是人工、排期、验证、回滚预案等隐性成本。
+风险成本不是设备损坏成本，而是业务中断、数据不一致、服务异常、回滚失败等潜在风险的抽象估算。
+
+因此在 demo 中：
+
+模板默认 migration_cost = 0
+模板默认 restart_risk_cost = 0
+
+左侧保留：
+迁移成本情景系数
+风险成本情景系数
+
+但作为保守情景调节项，不是必填项。
+
+如果用户没有明确成本数据，建议默认 0。
+
+
+六、用户最新想法：去除不必要的页面指标
+
+用户认为：
+周期内的收益、电费支出等不需要展示，因为决策者不可能关心短短样本周期内的支出收益。
+
+正确处理方式：
+不要急着删除后台变量。
+优先只在 app.py 和 report.py 中隐藏不必要展示。
+后台变量保留更安全，避免牵一发动全身。
+
+建议原则：
+
+不想让用户看到 → 从 app.py 隐藏
+不想让报告提到 → 从 report.py 隐藏
+觉得名字不地道 → 改 i18n.py
+公式错误 → 改 core/consolidation.py 和 core/summary.py
+图表不好看 → 改 visualization/plots.py
+模板数据不合理 → 改 sample/sample_utilization_template.csv
+
+页面上优先展示：
+
+年度运营节省
+一次性整合成本
+首年净收益
+可整合候选资产
 理论可下线资产
-迁移成本扣除
-重启风险成本扣除
-净节省
-年度净节省
-风险评分
-优先级分类
-动作建议分类
-自动报告
-管理层风格 UI
-详细表格折叠
+整合后目标利用率
+疑似僵尸资产数量
+低利用率资产数量
+主要浪费分组
+自动分析报告
+风险提示
 
-未实现且暂时不建议实现：
+减少或隐藏：
 
-实时监控接口
-数据库
-Prometheus / Zabbix / DCIM 接入
-自动关停
-真实业务迁移调度
-复杂 SLA 约束
-峰谷电价匹配
-机器学习预测
-实时告警
+本周期总电费
+本周期省了几元
+本周期净节省
+原始输入数据预览
+结果 CSV 下载按钮
 
 
-六、用户最新 UI 修改方向
+七、后续建议修改顺序
 
-用户刚提出并已实施的 UI 修改要求：
+第一步：修复经济性公式 bug
 
-1. 左侧输入栏数据输入部分：
-不需要“使用样品数据”的 checkbox。
-只允许上传 CSV。
-下载模板按钮不要太大，不要花哨。
-布局参考另一个完美版 app.py：上传框和下载模板按钮左右并排。
+改：
+core/consolidation.py
+core/summary.py
 
-2. 上传完 CSV 后：
-不点“开始测试”右边不应该出结果。
-已经改为必须点击按钮才计算。
+新增或修正：
+period_operating_saving
+annual_operating_saving
+one_time_consolidation_cost
+first_year_net_benefit
 
-3. 右侧“数据预览”扩展栏：
-本质是输入 CSV，不需要。
-已经删除。
+避免把迁移成本、风险成本年化。
 
-4. 资产分析清单：
-移动到自动分析报告后面。
-做成“详细数据表”的折叠栏。
-默认不展开。
-下载结果 CSV 功能删除。
-已经实现。
+第二步：修改模板 CSV
 
-5. 结果页面优先级：
-先 KPI、图表、自动报告；
-表格只作为后台核查资料隐藏。
+改：
+sample/sample_utilization_template.csv
 
+把 migration_cost 和 restart_risk_cost 全部改为 0。
 
-七、用户下一步计划
+第三步：修改 UI 文案
 
-用户准备开始详细测试第一版 demo。
+改：
+i18n.py
 
-接下来可能会做：
+统一术语：
+活跃利用率阈值
+活跃时段占比上限
+缺失时默认空闲功率
+缺失时默认满载功率
+候选资产整合比例
+整合后目标利用率上限
+冷却节能折算系数
+迁移成本情景系数
+风险成本情景系数
+年度运营节省
+一次性整合成本
+首年净收益
+整合优先级评分
 
-1. 检查功能是否报错。
-2. 检查上传模板 CSV 后是否能正常分析。
-3. 检查基础 / 标准 / 增强模式计算是否合理。
-4. 检查图表是否美观。
-5. 检查 UI 布局是否符合预期。
-6. 精修中文文案。
-7. 再让 AI 帮忙改英文表述。
-8. 可能继续调整图表风格。
-9. 可能修改报告输出逻辑。
-10. 可能希望更贴近另一个 EOE demo 的 UI 视觉风格。
+第四步：修改页面展示逻辑
+
+改：
+app.py
+
+重点：
+基础模式隐藏标准/高级参数；
+标准模式显示整合参数；
+增强模式显示成本/风险情景系数；
+减少周期内金额指标；
+改为展示年度运营节省、一次性整合成本、首年净收益；
+模型说明中加入低利用率资产、疑似僵尸资产、候选资产定义。
+
+第五步：修改报告
+
+改：
+report.py
+
+重点：
+少说本周期收益；
+多说年度运营节省、首年净收益；
+强调一次性成本；
+强调输出是优先排查清单，不是自动关停指令。
+
+第六步：必要时修改图表
+
+改：
+visualization/plots.py
+
+尤其节省收益瀑布图应与新经济性口径一致。
 
 
 八、后续接手时的回答风格建议
@@ -570,7 +673,7 @@ Prometheus / Zabbix / DCIM 接入
 用户不会 Python，不喜欢听太多技术解释。
 
 如果用户反馈报错：
-直接告诉他改哪个文件、替换哪一段，最好给完整文件或明确替换代码。
+直接告诉他改哪个文件，替换哪一段，最好给完整文件或明确替换代码。
 
 如果用户说“开始写”：
 直接给保存路径和完整代码，不要解释太多。
@@ -594,26 +697,39 @@ Prometheus / Zabbix / DCIM 接入
 中文优先写得像面向企业管理者 / 投资人，而不是工程调试说明。
 英文要专业但不要太复杂。
 
+如果用户问概念问题：
+先用业务语言解释，不要上来讲代码。
+
 
 九、重要注意事项
 
-1. 用户此前多次强调：
-app.py 中尽量不要直接写中英文文字。
+1. app.py 中尽量不要直接写中英文文字。
 UI 文案放 i18n.py。
 报告文案放 report.py。
 
-2. 本项目和此前储能电费优化 demo 是两个不同模块，但 UI 风格要统一。
+2. 这个模块和此前储能电费优化 demo 是不同模块，但 UI 风格要统一。
 
-3. “加权平均电价”不要改成峰谷电价，除非用户明确要求。
+3. 不要恢复“使用样品数据 checkbox”。
 
-4. 模板 CSV 必须作为 sample 文件夹里的独立 csv 文件存在，不要重新写回动态生成函数。
+4. 不要恢复结果 CSV 下载按钮。
 
-5. 不要恢复“使用样品数据 checkbox”。
+5. 不要把原始数据预览重新放到主页面。
 
-6. 不要恢复结果 CSV 下载按钮。
+6. 详细表格默认折叠。
 
-7. 不要把原始数据预览重新放到主页面。
+7. 模板 CSV 必须作为 sample 文件夹里的独立 csv 文件存在。
 
-8. 详细表格默认折叠。
+8. 不要默认使用峰谷电价。此模块使用“加权平均电价”即可。
 
-10. 这个 demo 的价值是展示“低利用率资产 → 能耗浪费 → 经济损失 → 资源整合空间 → 管理建议”，不是做真实数据中心自动化运维。
+9. 当前整合决策逻辑整体自洽，可以先保留。短期优先改公式 bug、文案、页面展示和模式下参数显示。
+
+10. 这个 demo 的价值是展示：
+低利用率资产
+→ 能耗浪费
+→ 经济损失
+→ 资源整合空间
+→ 年度运营节省
+→ 首年净收益
+→ 管理建议
+
+而不是做真实数据中心自动化运维。

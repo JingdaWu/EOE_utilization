@@ -28,8 +28,30 @@ def calculate_summary(
 
     annualization_factor = 365 / max(period_days, 1 / 24)
 
-    gross_saving = float(consolidation_summary.get("gross_saving_cost", waste_cost))
-    net_saving = float(consolidation_summary.get("net_saving_cost", gross_saving))
+    baseline_cost = float(consolidation_summary.get("baseline_cost", total_cost))
+    saving_cost = float(consolidation_summary.get("saving_cost", waste_cost))
+    cooling_saving_cost = float(consolidation_summary.get("cooling_saving_cost", 0))
+    operating_saving_cost = saving_cost + cooling_saving_cost
+
+    annual_operating_saving = float(
+        consolidation_summary.get(
+            "annual_operating_saving",
+            operating_saving_cost * annualization_factor,
+        )
+    )
+    one_time_consolidation_cost = float(
+        consolidation_summary.get(
+            "one_time_consolidation_cost",
+            float(consolidation_summary.get("migration_cost", 0))
+            + float(consolidation_summary.get("restart_risk_cost", 0)),
+        )
+    )
+    first_year_net_benefit = float(
+        consolidation_summary.get(
+            "first_year_net_benefit",
+            annual_operating_saving - one_time_consolidation_cost,
+        )
+    )
 
     summary = {
         "period_days": float(period_days),
@@ -57,17 +79,28 @@ def calculate_summary(
         "post_avg_utilization": float(consolidation_summary.get("post_avg_utilization", avg_utilization)),
 
         "saving_energy_kwh": float(consolidation_summary.get("saving_energy_kwh", waste_energy)),
-        "saving_cost": float(consolidation_summary.get("saving_cost", waste_cost)),
+        "saving_cost": saving_cost,
         "cooling_saving_kwh": float(consolidation_summary.get("cooling_saving_kwh", 0)),
-        "cooling_saving_cost": float(consolidation_summary.get("cooling_saving_cost", 0)),
+        "cooling_saving_cost": cooling_saving_cost,
 
         "migration_cost": float(consolidation_summary.get("migration_cost", 0)),
         "restart_risk_cost": float(consolidation_summary.get("restart_risk_cost", 0)),
-        "gross_saving_cost": gross_saving,
-        "net_saving_cost": net_saving,
-
-        "annual_gross_saving": float(consolidation_summary.get("annual_gross_saving", gross_saving * annualization_factor)),
-        "annual_net_saving": float(consolidation_summary.get("annual_net_saving", net_saving * annualization_factor)),
+        "baseline_cost": baseline_cost,
+        "post_consolidation_cost": float(
+            consolidation_summary.get(
+                "post_consolidation_cost",
+                max(baseline_cost - operating_saving_cost, 0.0),
+            )
+        ),
+        "cost_saving_ratio": float(
+            consolidation_summary.get(
+                "cost_saving_ratio",
+                operating_saving_cost / baseline_cost * 100 if baseline_cost else 0,
+            )
+        ),
+        "annual_operating_saving": annual_operating_saving,
+        "one_time_consolidation_cost": one_time_consolidation_cost,
+        "first_year_net_benefit": first_year_net_benefit,
     }
 
     if group_metrics is not None and not group_metrics.empty:

@@ -72,6 +72,8 @@ def calculate_consolidation(
     remaining_capacity = max(total_capacity - removed_capacity, 0.0001)
     post_avg_utilization = total_load / remaining_capacity * 100
 
+    baseline_cost = work["cost"].sum() if "cost" in work.columns else 0.0
+
     saving_energy_kwh = shutdown_assets["energy_kwh"].sum() if not shutdown_assets.empty else 0.0
     saving_cost = saving_energy_kwh * electricity_price
 
@@ -81,11 +83,12 @@ def calculate_consolidation(
     migration_cost = shutdown_assets["migration_cost"].sum() if not shutdown_assets.empty else 0.0
     restart_risk_cost = shutdown_assets["restart_risk_cost"].sum() if not shutdown_assets.empty else 0.0
 
-    gross_saving_cost = saving_cost + cooling_saving_cost
-    net_saving_cost = gross_saving_cost - migration_cost - restart_risk_cost
-
-    annual_gross_saving = gross_saving_cost * annualization_factor
-    annual_net_saving = net_saving_cost * annualization_factor
+    operating_saving_cost = saving_cost + cooling_saving_cost
+    post_consolidation_cost = max(baseline_cost - operating_saving_cost, 0.0)
+    cost_saving_ratio = operating_saving_cost / baseline_cost * 100 if baseline_cost else 0.0
+    annual_operating_saving = operating_saving_cost * annualization_factor
+    one_time_consolidation_cost = migration_cost + restart_risk_cost
+    first_year_net_benefit = annual_operating_saving - one_time_consolidation_cost
 
     summary = {
         "candidate_assets": int(len(candidates)),
@@ -97,10 +100,12 @@ def calculate_consolidation(
         "cooling_saving_cost": float(cooling_saving_cost),
         "migration_cost": float(migration_cost),
         "restart_risk_cost": float(restart_risk_cost),
-        "gross_saving_cost": float(gross_saving_cost),
-        "net_saving_cost": float(net_saving_cost),
-        "annual_gross_saving": float(annual_gross_saving),
-        "annual_net_saving": float(annual_net_saving),
+        "baseline_cost": float(baseline_cost),
+        "post_consolidation_cost": float(post_consolidation_cost),
+        "cost_saving_ratio": float(cost_saving_ratio),
+        "annual_operating_saving": float(annual_operating_saving),
+        "one_time_consolidation_cost": float(one_time_consolidation_cost),
+        "first_year_net_benefit": float(first_year_net_benefit),
         "safe_util_limit": float(safe_util_limit),
         "total_capacity": float(total_capacity),
         "remaining_capacity": float(remaining_capacity),
@@ -154,6 +159,8 @@ def calculate_group_consolidation(
         remaining_capacity = max(total_capacity - removed_capacity, 0.0001)
         post_util = total_load / remaining_capacity * 100
 
+        baseline_cost = group_df["cost"].sum() if "cost" in group_df.columns else 0.0
+
         saving_energy = selected["energy_kwh"].sum() if not selected.empty else 0.0
         saving_cost = saving_energy * electricity_price
         cooling_saving = saving_energy * cooling_factor
@@ -161,8 +168,12 @@ def calculate_group_consolidation(
         migration_cost = selected["migration_cost"].sum() if not selected.empty else 0.0
         restart_risk_cost = selected["restart_risk_cost"].sum() if not selected.empty else 0.0
 
-        gross_saving = saving_cost + cooling_saving_cost
-        net_saving = gross_saving - migration_cost - restart_risk_cost
+        operating_saving_cost = saving_cost + cooling_saving_cost
+        post_consolidation_cost = max(baseline_cost - operating_saving_cost, 0.0)
+        cost_saving_ratio = operating_saving_cost / baseline_cost * 100 if baseline_cost else 0.0
+        annual_operating_saving = operating_saving_cost * annualization_factor
+        one_time_consolidation_cost = migration_cost + restart_risk_cost
+        first_year_net_benefit = annual_operating_saving - one_time_consolidation_cost
 
         rows.append(
             {
@@ -180,9 +191,12 @@ def calculate_group_consolidation(
                 "cooling_saving_cost": float(cooling_saving_cost),
                 "migration_cost": float(migration_cost),
                 "restart_risk_cost": float(restart_risk_cost),
-                "gross_saving_cost": float(gross_saving),
-                "net_saving_cost": float(net_saving),
-                "annual_net_saving": float(net_saving * annualization_factor),
+                "baseline_cost": float(baseline_cost),
+                "post_consolidation_cost": float(post_consolidation_cost),
+                "cost_saving_ratio": float(cost_saving_ratio),
+                "annual_operating_saving": float(annual_operating_saving),
+                "one_time_consolidation_cost": float(one_time_consolidation_cost),
+                "first_year_net_benefit": float(first_year_net_benefit),
             }
         )
 
@@ -191,4 +205,4 @@ def calculate_group_consolidation(
     if result.empty:
         return result
 
-    return result.sort_values("net_saving_cost", ascending=False).reset_index(drop=True)
+    return result.sort_values("first_year_net_benefit", ascending=False).reset_index(drop=True)
