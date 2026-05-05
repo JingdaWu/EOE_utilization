@@ -1,84 +1,84 @@
 from __future__ import annotations
 
 
-TEXTS = {'zh': {'page_title': '数据中心利用率优化',
-        'app_name': '数据中心利用率与资源优化 Demo',
-        'page_subtitle': '识别低利用率资产、疑似僵尸设备和隐性能耗浪费，输出资源整合与节能收益建议。',
+TEXTS = {'zh': {'page_title': 'EOE - 数据中心利用率调优',
+        'app_name': 'EOE - 数据中心利用率调优',
+        'page_subtitle': '数据中心设备利用率与资源整合调优决策助手',
         'app_caption': 'Energy Optimization Engine · Utilization & Resource Optimization Module',
-        'sidebar_title': '利用率优化模块',
-        'sidebar_desc': '上传资产利用率日志并设置分析假设。',
-        'language_toggle': 'EN',
-        'chip_utilization': '利用率分析',
+        'sidebar_title': 'EOE - 数据中心利用率调优',
+        'sidebar_desc': '数据中心设备利用率与资源整合调优决策助手',
+        'language_toggle': 'English',
+        'chip_utilization': '数据中心设备利用率分析',
         'chip_zombie': '僵尸资产识别',
-        'chip_consolidation': '资源整合',
-        'chip_energy_saving': '节能收益',
-        'section_data': '数据输入',
-        'section_data_desc': '上传资产利用率 CSV 文件，或下载模板查看字段格式。',
+        'chip_consolidation': '设备整合决策助手',
+        'chip_energy_saving': '设备整合经济性分析',
+        'section_data': '设备数据上传',
+        'section_data_desc': '上传数据中心资产利用率 CSV 文件',
         'section_model': '分析模式',
-        'section_model_desc': '选择基础、标准或增强分析。',
-        'section_threshold': '识别阈值',
-        'section_threshold_desc': '设置低利用率、活跃利用率与活跃时段判断规则。',
-        'section_power': '功率与电价',
-        'section_power_desc': '设置默认功率和加权平均电价。',
-        'section_consolidation': '整合假设',
-        'section_consolidation_desc': '设置候选资产整合比例、目标利用率上限和冷却节能折算。',
-        'section_advanced': '高级假设',
-        'section_advanced_desc': '用于增强模式下的成本情景和风险评分。',
-        'upload_file': '上传 CSV',
-        'uploaded_file_label': '上传利用率日志',
-        'uploaded_file_help': '支持 CSV。至少需要 timestamp、asset_id、utilization 三列。',
+        'section_model_desc': '选择基础、进阶或高级分析模式',
+        'section_threshold': '评估阈值定义',
+        'section_threshold_desc': '输入低利用率、闲置设备的评判标准',
+        'section_power': '功率与电价输入',
+        'section_power_desc': '输入数据中心的功率消耗及加权平均电价',
+        'section_consolidation': '整合条件设定',
+        'section_consolidation_desc': '设定设备整合相关需求参数与限制条件',
+        'section_advanced': '高级参数',
+        'section_advanced_desc': '输入高级模式下用于分析评估的参数',
+        'upload_file': '上传CSV',
+        'uploaded_file_label': '点击下方按钮上传',
+        'uploaded_file_help': '支持数据中心利用率日志CSV文档。文档中需至少包含timestamp、asset_id、utilization三列。',
         'download_template': '下载模板',
-        'no_data': '请先上传 CSV 文件。',
-        'file_error': '文件读取失败，请检查字段和格式。',
+        'no_data': '请先上传数据中心利用率日志CSV。',
+        'file_error': '数据中心利用率日志读取失败，请检查字段和格式',
         'value_uploaded': '已上传',
         'value_not_uploaded': '未上传',
         'analysis_mode': '分析模式',
-        'mode_basic': '基础模式',
-        'mode_standard': '标准模式',
-        'mode_enhanced': '增强模式',
-        'mode_basic_help': '只使用利用率、统一功率和阈值规则，适合最小数据输入与快速初筛。',
-        'mode_standard_help': '增加候选资产整合比例、目标利用率上限和冷却节能折算，用于评估整合收益。',
-        'mode_enhanced_help': '增加内存、IO、业务保护、可迁移性、迁移成本情景和风险评分。',
-        'low_util_threshold': '低利用率阈值 %',
-        'high_util_threshold': '活跃利用率阈值 %',
-        'high_duty_threshold': '活跃时段占比上限 %',
-        'idle_power': '缺失时默认空闲功率 W',
-        'peak_power': '缺失时默认满载功率 W',
-        'electricity_price': '加权平均电价 ¥/kWh',
-        'consolidation_ratio': '候选资产整合比例 %',
-        'safe_util_limit': '整合后目标利用率上限 %',
-        'cooling_factor': '冷却节能折算系数',
-        'migration_cost_multiplier': '迁移成本情景系数',
-        'risk_cost_multiplier': '风险成本情景系数',
-        'run_hint': '完成参数设置后，点击下方按钮开始测试。',
-        'run_button_new': '开始测试',
-        'analysis_done': '分析完成。',
+        'mode_basic': '基础分析模式',
+        'mode_standard': '进阶分析模式',
+        'mode_enhanced': '高级分析模式',
+        'mode_basic_help': '基础模式仅使用利用率、统一功率和阈值规则开展分析，适合小数据样本输入与快速初筛',
+        'mode_standard_help': '进阶模式将结合设备目标整合比例、目标利用率和冷却收益开展，用于评估设备整合收益',
+        'mode_enhanced_help': '高级模式将结合增加内存、IO、业务保护、可迁移性、迁移成本情景和风险评分开展全面收益分析',
+        'low_util_threshold': '低利用率阈值标准（%）',
+        'high_util_threshold': '活跃利用率阈值标准（%）',
+        'high_duty_threshold': '活跃利用率时段占比阈值标准（%）',
+        'idle_power': '默认空闲功率（W）（仅在利用率日志中数据缺失时生效）',
+        'peak_power': '默认满载功率（W）（仅在利用率日志中数据缺失时生效）',
+        'electricity_price': '加权平均电价（¥/kWh）',
+        'consolidation_ratio': '候选设备整合比例（%）',
+        'safe_util_limit': '整合后利用率上限阈值（%）',
+        'cooling_factor': '冷却系数',
+        'migration_cost_multiplier': '设备整合迁移成本系数',
+        'risk_cost_multiplier': '设备整合风险成本系数',
+        'run_hint': '请核对是否完成全部数据与参数输入',
+        'run_button_new': '开始利用率调优分析评估',
+        'analysis_done': '分析完成',
         'simulation_failed': '分析失败',
         'input_error': '输入错误',
-        'empty_title': '等待开始测试',
-        'empty_body': '请在左侧上传利用率日志，然后点击“开始测试”。系统将输出资产利用率、能耗浪费、整合空间和管理建议。',
-        'scenario_summary': '当前分析场景',
+        'empty_title': '数据中心设备利用率与资源调优分析流程指南',
+        'empty_body': '请先在左侧输入栏依次完成：1）利用率日志上传；2）分析模式选择；3）分析评估所需各项阈值参数设置。完成所需各项数据和参数上传后点击“开始利用率调优分析评估”。如果部分数据或参数缺失，可以下载模板csv文档填写或使用样品数据进行试用。',
+        'scenario_summary': '分析模式及数据输入状态摘要',
         'label_mode': '分析模式',
-        'label_data_status': '数据状态',
-        'label_price': '加权平均电价',
+        'label_data_status': '数据上传状态',
+        'label_price': '加权平均电价（¥/kWh）',
         'label_period': '分析周期',
         'label_assets': '资产数量',
-        'model_notice_title': '模型说明',
-        'basic_notice': '基础模式适合数据字段较少的场景，主要依据平均利用率、活跃利用率阈值和活跃时段占比识别低利用率资产。该模式重点输出优先排查对象，不直接给出整合收益结论。',
-        'standard_notice': '标准模式在基础模式上加入候选资产整合比例、整合后目标利用率上限和冷却节能折算，用于估算电费节省比例、年度运营节省和首年净收益。',
-        'enhanced_notice': '增强模式进一步考虑内存、磁盘 IO、网络 IO、业务保护、可迁移性与迁移成本情景，用于生成更稳妥的优先排查清单和管理决策建议。',
+        'model_notice_title': '分析模式选用模型说明',
+        'basic_notice': '基础模式仅使用利用率、统一功率和阈值规则开展分析，适合小数据样本输入与快速初筛。此模式重点评估优设备利用状态，不直接给出整合建议和经济性分析结论',
+        'standard_notice': '进阶模式会结合设备目标整合比例、目标利用率和冷却收益开展，用于评估设备整合收益，估算电费节省比例、年运营成本节省数额和净收益',
+        'enhanced_notice': '高级模式将在进阶模式的功能基础上结合增加内存、IO、业务保护、可迁移性、迁移成本情景和风险评分开展更高精度的收益分析与决策建议',
         'key_metrics': '核心指标',
-        'kpi_desc': '将利用率数据转化为能耗浪费、资源整合空间和年度化经济性指标。',
-        'total_assets': '资产总数',
-        'low_util_assets': '低利用率资产',
-        'zombie_assets': '疑似僵尸资产',
-        'candidate_assets': '可评估整合资产',
+        'kpi_desc': '下方展示的核心指标包括设备利用率状态及整合经济性相关的各类经济性指标。',
+        'total_assets': '设备总数',
+        'low_util_assets': '低利用率设备数量',
+        'zombie_assets': '疑似闲置设备数量',
+        'candidate_assets': '评估可整合设备',
         'total_energy': '周期总耗电量',
         'waste_energy': '潜在浪费电量',
-        'gross_saving': '年度运营节省',
+        'gross_saving': '年运营经济性节省收益',
         'net_saving': '首年净收益',
         'annual_net_saving': '首年净收益',
-        'shutdown_assets': '理论可下线资产',
+        'shutdown_assets': '评估可下线设备数量',
         'post_utilization': '整合后平均利用率',
         'top_waste_group': '主要浪费分组',
         'results_title': '结果概览',
@@ -92,7 +92,7 @@ TEXTS = {'zh': {'page_title': '数据中心利用率优化',
         'chart_zombie_top': '疑似僵尸资产节省潜力 Top 10',
         'chart_saving_waterfall': '年度节省与首年净收益拆解',
         'chart_action_category': '管理动作分类',
-        'chart_hourly_load': '总功率时间序列',
+        'chart_hourly_load': '利用率日志周期内功率消耗时间序列矩阵',
         'x_util': '平均利用率 %',
         'x_energy': '耗电量 kWh',
         'x_group': '分组',
@@ -104,7 +104,7 @@ TEXTS = {'zh': {'page_title': '数据中心利用率优化',
         'y_power': '功率 kW',
         'risk_score': '整合优先级评分',
         'detailed_tables': '详细数据表',
-        'detailed_tables_hint': '以下表格主要用于工程核查和结果追溯，默认折叠以保持管理层视图简洁。',
+        'detailed_tables_hint': '以下表格主要用于工程核查和结果追溯',
         'table_title': '资产分析清单',
         'priority_table_title': '优先排查清单',
         'group_table_title': '分组分析清单',
@@ -143,12 +143,12 @@ TEXTS = {'zh': {'page_title': '数据中心利用率优化',
         'gross_saving_cost': '年度运营节省 ¥',
         'net_saving_cost': '首年净收益 ¥',
         'annual_net_saving_col': '首年净收益 ¥',
-        'report_title': '自动分析报告',
-        'report_desc': '根据当前分析模式生成对应层级的管理结论：基础模式聚焦筛查，标准模式加入经济性，增强模式进一步纳入风险过滤。',
-        'report_empty': '暂无可显示的报告内容。',
-        'summary_tab': '摘要',
-        'economic_tab': '经济性',
-        'decision_tab': '决策建议',
+        'report_title': '设备利用率、设备整合与经济性收益分析报告',
+        'report_desc': '分析报告内容根据当前所选分析模式侧重有所不同：基础模式聚焦设备利用率可视化，进阶模式额外包含设备整合决策建议及整合经济性分析，高级模式在进阶模式的基础上额外增加了精度相关参数的考察权重',
+        'report_empty': '暂无可显示的分析报告',
+        'summary_tab': '概括摘要',
+        'economic_tab': '经济性分析',
+        'decision_tab': '设备整合决策建议',
         'risk_tab': '风险提示',
         'summary_title': '摘要结论',
         'economic_title': '经济性结论',
@@ -160,7 +160,7 @@ TEXTS = {'zh': {'page_title': '数据中心利用率优化',
         'kwh': 'kWh',
         'kw': 'kW',
         'days': '天',
-        'assets_unit': '台/套',
+        'assets_unit': '台',
         'percent': '%',
         'yes': '是',
         'no': '否',
@@ -172,184 +172,171 @@ TEXTS = {'zh': {'page_title': '数据中心利用率优化',
         'protected_assets': '业务保护资产',
         'baseline_cost': '整合前电费基准 ¥',
         'post_consolidation_cost': '整合后估算电费 ¥',
-        'cost_saving_ratio': '整合后电费节省比例',
-        'annual_operating_saving': '年度运营节省',
-        'one_time_consolidation_cost': '一次性整合成本',
-        'first_year_net_benefit': '首年净收益',
-        'chart_asset_status_pie': '资产状态互斥分类',
-        'asset_status_normal': '正常/较高利用率资产',
-        'asset_status_low_util': '低利用率资产',
-        'asset_status_zombie': '疑似僵尸资产',
-        'chart_cost_saving_pie': '年度电费节省占比',
-        'annual_remaining_cost': '整合后剩余年度电费',
-        'chart_annual_economics_bar': '年度经济性对比'},
- 'en': {'page_title': 'Data Center Utilization Optimization',
-        'app_name': 'Data Center Utilization & Resource Optimization Demo',
-        'page_subtitle': 'Identify underutilized assets, suspected zombie devices, hidden energy waste, and resource '
-                         'consolidation opportunities.',
+        'cost_saving_ratio': '设备整合前后电费节省比率',
+        'annual_operating_saving': '年运营电费节省数额',
+        'one_time_consolidation_cost': '设备整合成本',
+        'first_year_net_benefit': '首年净收益金额',
+        'chart_asset_status_pie': '设备利用率状态比例图',
+        'asset_status_normal': '高利用率设备',
+        'asset_status_low_util': '低利用率设备',
+        'asset_status_zombie': '疑似闲置设备',
+        'chart_cost_saving_pie': '设备整合前后电费节省比率图',
+        'annual_remaining_cost': '整合后年度支出电费',
+        'chart_annual_economics_bar': '设备整合后年度经济性收益'},
+ 'en': {
+        'page_title': 'EOE - Data Center Utilization Optimization',  # refined EN wording
+        'app_name': 'EOE - Data Center Utilization Optimization',  # refined EN wording
+        'page_subtitle': 'A decision-support dashboard for data center utilization screening, idle-resource review, and consolidation economics.',  # refined EN wording
         'app_caption': 'Energy Optimization Engine · Utilization & Resource Optimization Module',
-        'sidebar_title': 'Utilization Optimization',
-        'sidebar_desc': 'Upload asset utilization logs and configure analysis assumptions.',
-        'language_toggle': '中',
-        'chip_utilization': 'Utilization Analysis',
-        'chip_zombie': 'Zombie Asset Detection',
-        'chip_consolidation': 'Resource Consolidation',
-        'chip_energy_saving': 'Energy Saving',
-        'section_data': 'Data Input',
-        'section_data_desc': 'Upload an asset utilization CSV file or download the template.',
+        'sidebar_title': 'EOE - Data Center Utilization Optimization',  # refined EN wording
+        'sidebar_desc': 'Upload utilization logs and configure screening, consolidation, and cost assumptions.',  # refined EN wording
+        'language_toggle': '中文',
+        'chip_utilization': 'Utilization Assessment',  # refined EN wording
+        'chip_zombie': 'Idle / Zombie Asset Review',  # refined EN wording
+        'chip_consolidation': 'Resource Consolidation Review',  # refined EN wording
+        'chip_energy_saving': 'Consolidation Economics',  # refined EN wording
+        'section_data': 'Utilization Data Upload',  # refined EN wording
+        'section_data_desc': 'Upload a data center asset utilization CSV file.',  # refined EN wording
         'section_model': 'Analysis Mode',
-        'section_model_desc': 'Choose basic, standard, or enhanced analysis.',
-        'section_threshold': 'Detection Thresholds',
-        'section_threshold_desc': 'Set low-utilization, active-utilization, and active-time detection rules.',
-        'section_power': 'Power & Tariff',
-        'section_power_desc': 'Set default power parameters and weighted average electricity price.',
-        'section_consolidation': 'Consolidation Assumptions',
-        'section_consolidation_desc': 'Set candidate consolidation ratio, target utilization limit, and cooling saving '
-                                      'factor.',
-        'section_advanced': 'Advanced Assumptions',
-        'section_advanced_desc': 'Used for cost scenarios and risk scoring in Enhanced Mode.',
+        'section_model_desc': 'Choose Basic, Standard, or Enhanced Mode according to available data and decision depth.',  # refined EN wording
+        'section_threshold': 'Screening Thresholds',  # refined EN wording
+        'section_threshold_desc': 'Define the criteria for low-utilization and potentially idle assets.',  # refined EN wording
+        'section_power': 'Power and Electricity Price',  # refined EN wording
+        'section_power_desc': 'Set default power assumptions and weighted average electricity price.',  # refined EN wording
+        'section_consolidation': 'Consolidation Assumptions',  # refined EN wording
+        'section_consolidation_desc': 'Set consolidation ratio, target utilization limit, and cooling-saving conversion factor.',  # refined EN wording
+        'section_advanced': 'Enhanced-mode Parameters',  # refined EN wording
+        'section_advanced_desc': 'Configure scenario factors used for enhanced risk and cost assessment.',  # refined EN wording
         'upload_file': 'Upload CSV',
-        'uploaded_file_label': 'Upload Utilization Log',
-        'uploaded_file_help': 'CSV is supported. Required columns: timestamp, asset_id, utilization.',
-        'download_template': 'Template',
-        'no_data': 'Please upload a CSV file first.',
-        'file_error': 'Failed to read the file. Please check the columns and format.',
+        'uploaded_file_label': 'Click below to upload',  # refined EN wording
+        'uploaded_file_help': 'Upload a data center utilization log in CSV format. Required columns: timestamp, asset_id, utilization.',  # refined EN wording
+        'download_template': 'Download Template',  # refined EN wording
+        'no_data': 'Please upload a data center utilization log CSV first.',  # refined EN wording
+        'file_error': 'Failed to read the utilization log. Please check the required columns and file format.',  # refined EN wording
         'value_uploaded': 'Uploaded',
         'value_not_uploaded': 'Not Uploaded',
         'analysis_mode': 'Analysis Mode',
-        'mode_basic': 'Basic Mode',
-        'mode_standard': 'Standard Mode',
-        'mode_enhanced': 'Enhanced Mode',
-        'mode_basic_help': 'Uses utilization, unified power assumptions, and threshold rules. Suitable for minimum '
-                           'input data and quick screening.',
-        'mode_standard_help': 'Adds candidate consolidation ratio, target utilization limit, and cooling saving '
-                              'estimation for consolidation economics.',
-        'mode_enhanced_help': 'Adds memory, IO, business protection, migratability, migration cost scenarios, and risk '
-                              'scoring.',
-        'low_util_threshold': 'Low Utilization Threshold %',
-        'high_util_threshold': 'Active Utilization Threshold %',
-        'high_duty_threshold': 'Active Time Ratio Limit %',
-        'idle_power': 'Fallback Idle Power W',
-        'peak_power': 'Fallback Peak Power W',
-        'electricity_price': 'Weighted Average Electricity Price ¥/kWh',
-        'consolidation_ratio': 'Candidate Consolidation Ratio %',
-        'safe_util_limit': 'Post-consolidation Target Utilization Limit %',
-        'cooling_factor': 'Cooling Saving Factor',
-        'migration_cost_multiplier': 'Migration Cost Scenario Factor',
-        'risk_cost_multiplier': 'Risk Cost Scenario Factor',
-        'run_hint': 'After setting parameters, click the button below to run the test.',
-        'run_button_new': 'Run Analysis',
+        'mode_basic': 'Basic Mode',  # refined EN wording
+        'mode_standard': 'Standard Mode',  # refined EN wording
+        'mode_enhanced': 'Enhanced Mode',  # refined EN wording
+        'mode_basic_help': 'Uses utilization data, uniform power assumptions, and threshold rules for quick preliminary screening.',  # refined EN wording
+        'mode_standard_help': 'Adds consolidation ratio, target utilization limit, and cooling-saving assumptions to estimate consolidation economics.',  # refined EN wording
+        'mode_enhanced_help': 'Adds memory, IO, business protection, migratability, migration-cost scenarios, and risk-cost scenarios for a more conservative assessment.',  # refined EN wording
+        'low_util_threshold': 'Low-utilization Threshold (%)',  # refined EN wording
+        'high_util_threshold': 'Active-utilization Threshold (%)',  # refined EN wording
+        'high_duty_threshold': 'Active-time Share Threshold (%)',  # refined EN wording
+        'idle_power': 'Default Idle Power (W) — used only when missing from the log',  # refined EN wording
+        'peak_power': 'Default Full-load Power (W) — used only when missing from the log',  # refined EN wording
+        'electricity_price': 'Weighted Average Electricity Price (¥/kWh)',  # refined EN wording
+        'consolidation_ratio': 'Candidate Asset Consolidation Ratio (%)',  # refined EN wording
+        'safe_util_limit': 'Post-consolidation Utilization Limit (%)',  # refined EN wording
+        'cooling_factor': 'Cooling-saving Conversion Factor',  # refined EN wording
+        'migration_cost_multiplier': 'Consolidation Migration-cost Factor',  # refined EN wording
+        'risk_cost_multiplier': 'Consolidation Risk-cost Factor',  # refined EN wording
+        'run_hint': 'Please confirm that all required data and parameters have been entered.',  # refined EN wording
+        'run_button_new': 'Run Utilization Optimization Assessment',  # refined EN wording
         'analysis_done': 'Analysis completed.',
         'simulation_failed': 'Analysis failed',
         'input_error': 'Input error',
-        'empty_title': 'Ready to Run',
-        'empty_body': 'Upload a utilization log on the left, then click Run Analysis. The system will output '
-                      'utilization, energy waste, consolidation potential, and management suggestions.',
-        'scenario_summary': 'Current Scenario',
+        'empty_title': 'Data Center Utilization and Resource Optimization Workflow',  # refined EN wording
+        'empty_body': 'Complete the workflow in the left sidebar: 1) upload a utilization log; 2) select an analysis mode; 3) configure the required thresholds and assumptions. Then click “Run Utilization Optimization Assessment”. If data is missing, download the CSV template and fill in a compatible sample.',  # refined EN wording
+        'scenario_summary': 'Analysis Mode and Data Input Summary',  # refined EN wording
         'label_mode': 'Analysis Mode',
-        'label_data_status': 'Data Status',
-        'label_price': 'Weighted Avg. Price',
+        'label_data_status': 'Data Upload Status',  # refined EN wording
+        'label_price': 'Weighted Average Electricity Price (¥/kWh)',  # refined EN wording
         'label_period': 'Analysis Period',
         'label_assets': 'Asset Count',
-        'model_notice_title': 'Model Notice',
-        'basic_notice': 'Basic Mode is suitable for limited data. It identifies underutilized assets using average '
-                        'utilization, active-utilization threshold, and active-time ratio. It focuses on priority '
-                        'review targets rather than final consolidation economics.',
-        'standard_notice': 'Standard Mode adds candidate consolidation ratio, post-consolidation target utilization '
-                           'limit, and cooling saving estimation to calculate cost saving ratio, annual operating '
-                           'saving, and first-year net benefit.',
-        'enhanced_notice': 'Enhanced Mode further considers memory, disk IO, network IO, business protection, '
-                           'migratability, and migration cost scenarios to generate a more robust priority review list '
-                           'and management suggestions.',
+        'model_notice_title': 'Analysis-mode Methodology Notes',  # refined EN wording
+        'basic_notice': 'Basic Mode uses utilization data, uniform power assumptions, and threshold rules for quick screening. It focuses on utilization status and priority review targets, without generating consolidation economics.',  # refined EN wording
+        'standard_notice': 'Standard Mode adds consolidation ratio, target utilization limit, and cooling-saving assumptions to estimate electricity cost saving ratio, annual operating saving, and first-year net benefit.',  # refined EN wording
+        'enhanced_notice': 'Enhanced Mode further incorporates memory utilization, IO signals, business protection, migratability, migration-cost scenarios, and risk scoring to support a more conservative assessment.',  # refined EN wording
         'key_metrics': 'Key Metrics',
-        'kpi_desc': 'Translate utilization logs into energy waste, consolidation potential, and annualized economic '
-                    'indicators.',
-        'total_assets': 'Total Assets',
-        'low_util_assets': 'Low-utilization Assets',
-        'zombie_assets': 'Suspected Zombie Assets',
-        'candidate_assets': 'Consolidation Candidates',
-        'total_energy': 'Total Energy',
-        'waste_energy': 'Potential Waste Energy',
-        'gross_saving': 'Annual Operating Saving',
-        'net_saving': 'First-year Net Benefit',
-        'annual_net_saving': 'First-year Net Benefit',
-        'shutdown_assets': 'Theoretical Shutdown Assets',
-        'post_utilization': 'Post-consolidation Utilization',
-        'top_waste_group': 'Top Waste Group',
+        'kpi_desc': 'The metrics below summarize utilization status, consolidation potential, and mode-specific economic indicators.',  # refined EN wording
+        'total_assets': 'Total Devices / Assets',  # refined EN wording
+        'low_util_assets': 'Low-utilization Devices',  # refined EN wording
+        'zombie_assets': 'Suspected Idle Assets',  # refined EN wording
+        'candidate_assets': 'Consolidation-review Candidates',  # refined EN wording
+        'total_energy': 'Sample-period Energy Consumption',  # refined EN wording
+        'waste_energy': 'Potential Waste Energy',  # refined EN wording
+        'gross_saving': 'Annual Operating Saving',  # refined EN wording
+        'net_saving': 'First-year Net Benefit',  # refined EN wording
+        'annual_net_saving': 'First-year Net Benefit',  # refined EN wording
+        'shutdown_assets': 'Assets Flagged for Shutdown / Migration Review',  # refined EN wording
+        'post_utilization': 'Post-consolidation Average Utilization',  # refined EN wording
+        'top_waste_group': 'Largest Waste-contribution Group',  # refined EN wording
         'results_title': 'Results Overview',
-        'current_asset_status': 'Current Asset Status',
-        'consolidation_result': 'Consolidation Results',
-        'economic_result': 'Economic Results',
-        'charts_title': 'Charts',
+        'current_asset_status': 'Current Asset Status',  # refined EN wording
+        'consolidation_result': 'Consolidation Assessment',  # refined EN wording
+        'economic_result': 'Economic Results',  # refined EN wording
+        'charts_title': 'Chart Analysis',  # refined EN wording
         'chart_util_distribution': 'Average Utilization Distribution',
         'chart_energy_scatter': 'Average Utilization vs. Energy Consumption',
-        'chart_group_energy': 'Group Energy & Waste Cost',
-        'chart_zombie_top': 'Top 10 Suspected Zombie Assets by Saving Potential',
-        'chart_saving_waterfall': 'Annual Saving & First-year Net Benefit Breakdown',
-        'chart_action_category': 'Management Action Categories',
-        'chart_hourly_load': 'Total Power Time Series',
-        'x_util': 'Average Utilization %',
-        'x_energy': 'Energy kWh',
+        'chart_group_energy': 'Energy Use and Waste Cost by Group',  # refined EN wording
+        'chart_zombie_top': 'Top 10 Suspected Idle Assets by Saving Potential',  # refined EN wording
+        'chart_saving_waterfall': 'Annual Saving and First-year Net Benefit Breakdown',  # refined EN wording
+        'chart_action_category': 'Recommended Management Actions',  # refined EN wording
+        'chart_hourly_load': 'Power Consumption Time Series for the Utilization-log Period',  # refined EN wording
+        'x_util': 'Average Utilization (%)',  # refined EN wording
+        'x_energy': 'Energy (kWh)',  # refined EN wording
         'x_group': 'Group',
         'x_asset': 'Asset',
         'x_time': 'Time',
         'y_count': 'Asset Count',
-        'y_energy': 'Energy kWh',
-        'y_cost': 'Cost ¥',
-        'y_power': 'Power kW',
-        'risk_score': 'Consolidation Priority Score',
+        'y_energy': 'Energy (kWh)',  # refined EN wording
+        'y_cost': 'Cost (¥)',  # refined EN wording
+        'y_power': 'Power (kW)',  # refined EN wording
+        'risk_score': 'Consolidation Priority Score',  # refined EN wording
         'detailed_tables': 'Detailed Data Tables',
-        'detailed_tables_hint': 'The following tables are mainly for engineering review and result tracing. They are '
-                                'collapsed by default to keep the executive view clean.',
+        'detailed_tables_hint': 'The following tables are intended for engineering review and result traceability.',  # refined EN wording
         'table_title': 'Asset Analysis List',
-        'priority_table_title': 'Priority Review List',
+        'priority_table_title': 'Priority Review List',  # refined EN wording
         'group_table_title': 'Group Analysis List',
         'type_table_title': 'Asset Type Analysis List',
         'action_table_title': 'Management Action Summary',
         'asset_id': 'Asset ID',
         'asset_type': 'Asset Type',
         'group': 'Group',
-        'avg_utilization': 'Average Utilization %',
-        'max_utilization': 'Peak Utilization %',
-        'p95_utilization': 'P95 Utilization %',
-        'high_load_duty': 'Active Time Ratio %',
-        'avg_memory_utilization': 'Average Memory Utilization %',
-        'avg_disk_io': 'Average Disk IO %',
-        'avg_network_io': 'Average Network IO %',
-        'avg_power_kw': 'Average Power kW',
-        'energy_kwh': 'Energy kWh',
-        'cost': 'Electricity Cost ¥',
-        'waste_energy_kwh': 'Potential Waste Energy kWh',
-        'waste_cost': 'Potential Waste Cost ¥',
+        'avg_utilization': 'Average Utilization (%)',  # refined EN wording
+        'max_utilization': 'Peak Utilization (%)',  # refined EN wording
+        'p95_utilization': 'P95 Utilization (%)',  # refined EN wording
+        'high_load_duty': 'Active-time Share (%)',  # refined EN wording
+        'avg_memory_utilization': 'Average Memory Utilization (%)',  # refined EN wording
+        'avg_disk_io': 'Average Disk IO (%)',  # refined EN wording
+        'avg_network_io': 'Average Network IO (%)',  # refined EN wording
+        'avg_power_kw': 'Average Power (kW)',  # refined EN wording
+        'energy_kwh': 'Energy Consumption (kWh)',  # refined EN wording
+        'cost': 'Electricity Cost (¥)',  # refined EN wording
+        'waste_energy_kwh': 'Potential Waste Energy (kWh)',  # refined EN wording
+        'waste_cost': 'Potential Waste Cost (¥)',  # refined EN wording
         'is_low_util': 'Low-utilization',
-        'is_zombie': 'Suspected Zombie',
-        'is_business_protected': 'Business Protected',
+        'is_zombie': 'Suspected Idle / Zombie',  # refined EN wording
+        'is_business_protected': 'Business-protected',  # refined EN wording
         'is_migratable': 'Migratable',
         'priority_level': 'Priority Level',
-        'action_category': 'Suggested Action',
-        'selected_for_shutdown_assessment': 'Selected for Shutdown Assessment',
-        'estimated_shutdown': 'Theoretical Shutdown Count',
-        'post_avg_utilization': 'Post-consolidation Average Utilization %',
-        'saving_energy_kwh': 'Saving Energy kWh',
-        'saving_cost': 'Device-side Saving ¥',
-        'cooling_saving_kwh': 'Cooling-linked Saving kWh',
-        'cooling_saving_cost': 'Cooling-side Saving ¥',
-        'migration_cost': 'Migration Cost ¥',
-        'restart_risk_cost': 'Restart Risk Cost ¥',
-        'gross_saving_cost': 'Annual Operating Saving ¥',
-        'net_saving_cost': 'First-year Net Benefit ¥',
-        'annual_net_saving_col': 'First-year Net Benefit ¥',
-        'report_title': 'Auto-generated Analysis Report',
-        'report_desc': 'Mode-aware management conclusions: Basic Mode focuses on screening, Standard Mode adds economics, and Enhanced Mode adds risk filtering.',
+        'action_category': 'Recommended Action',  # refined EN wording
+        'selected_for_shutdown_assessment': 'Included in Shutdown / Migration Review',  # refined EN wording
+        'estimated_shutdown': 'Estimated Shutdown / Migration-review Count',  # refined EN wording
+        'post_avg_utilization': 'Post-consolidation Average Utilization (%)',  # refined EN wording
+        'saving_energy_kwh': 'Avoidable Energy Consumption (kWh)',  # refined EN wording
+        'saving_cost': 'IT-side Electricity Saving (¥)',  # refined EN wording
+        'cooling_saving_kwh': 'Cooling-linked Energy Saving (kWh)',  # refined EN wording
+        'cooling_saving_cost': 'Cooling-side Electricity Saving (¥)',  # refined EN wording
+        'migration_cost': 'Migration Cost (¥)',  # refined EN wording
+        'restart_risk_cost': 'Restart / Business Risk Cost (¥)',  # refined EN wording
+        'gross_saving_cost': 'Annual Operating Saving (¥)',  # refined EN wording
+        'net_saving_cost': 'First-year Net Benefit (¥)',  # refined EN wording
+        'annual_net_saving_col': 'First-year Net Benefit (¥)',  # refined EN wording
+        'report_title': 'Equipment Utilization, Consolidation, and Economic-benefit Analysis Report',  # refined EN wording
+        'report_desc': 'Report content is mode-aware: Basic Mode focuses on utilization screening, Standard Mode adds consolidation economics, and Enhanced Mode adds risk and business-constraint filtering.',  # refined EN wording
         'report_empty': 'No report content is available.',
         'summary_tab': 'Summary',
         'economic_tab': 'Economics',
-        'decision_tab': 'Decision',
-        'risk_tab': 'Risk',
-        'summary_title': 'Summary',
-        'economic_title': 'Economic Conclusions',
-        'decision_title': 'Management Suggestions',
-        'risk_title': 'Risk Notices',
+        'decision_tab': 'Consolidation Recommendations',  # refined EN wording
+        'risk_tab': 'Risk Notes',  # refined EN wording
+        'summary_title': 'Executive Summary',  # refined EN wording
+        'economic_title': 'Economic Conclusions',  # refined EN wording
+        'decision_title': 'Management Recommendations',  # refined EN wording
+        'risk_title': 'Risk Notes',  # refined EN wording
         'advanced_title': 'Key Insights',
         'template_filename': 'sample_utilization_template.csv',
         'currency': '¥',
@@ -360,25 +347,26 @@ TEXTS = {'zh': {'page_title': '数据中心利用率优化',
         'percent': '%',
         'yes': 'Yes',
         'no': 'No',
-        'energy_waste_result': 'Energy Waste Detection',
-        'priority_review_result': 'Priority Review Results',
-        'risk_decision_result': 'Risk & Decision',
-        'low_util_ratio': 'Low-utilization Ratio',
-        'zombie_ratio': 'Suspected Zombie Ratio',
-        'protected_assets': 'Business Protected Assets',
-        'baseline_cost': 'Baseline Electricity Cost ¥',
-        'post_consolidation_cost': 'Post-consolidation Estimated Cost ¥',
-        'cost_saving_ratio': 'Electricity Cost Saving Ratio',
-        'annual_operating_saving': 'Annual Operating Saving',
-        'one_time_consolidation_cost': 'One-time Consolidation Cost',
-        'first_year_net_benefit': 'First-year Net Benefit',
-        'chart_asset_status_pie': 'Mutually Exclusive Asset Status',
-        'asset_status_normal': 'Normal / Higher-utilization Assets',
-        'asset_status_low_util': 'Low-utilization Assets',
-        'asset_status_zombie': 'Suspected Zombie Assets',
-        'chart_cost_saving_pie': 'Annual Electricity Cost Saving Share',
-        'annual_remaining_cost': 'Remaining Annual Electricity Cost',
-        'chart_annual_economics_bar': 'Annualized Economic Comparison'}}
+        'energy_waste_result': 'Energy-waste Identification',  # refined EN wording
+        'priority_review_result': 'Priority Review Results',  # refined EN wording
+        'risk_decision_result': 'Risk and Decision Support',  # refined EN wording
+        'low_util_ratio': 'Low-utilization Asset Share',  # refined EN wording
+        'zombie_ratio': 'Suspected Idle-asset Share',  # refined EN wording
+        'protected_assets': 'Business-protected Assets',  # refined EN wording
+        'baseline_cost': 'Baseline Electricity Cost (¥)',  # refined EN wording
+        'post_consolidation_cost': 'Estimated Post-consolidation Electricity Cost (¥)',  # refined EN wording
+        'cost_saving_ratio': 'Electricity Cost Saving Ratio',  # refined EN wording
+        'annual_operating_saving': 'Annual Operating Saving',  # refined EN wording
+        'one_time_consolidation_cost': 'One-time Consolidation Cost',  # refined EN wording
+        'first_year_net_benefit': 'First-year Net Benefit',  # refined EN wording
+        'chart_asset_status_pie': 'Device Utilization Status Share',  # refined EN wording
+        'asset_status_normal': 'Normal / Higher-utilization Devices',  # refined EN wording
+        'asset_status_low_util': 'Low-utilization Devices',  # refined EN wording
+        'asset_status_zombie': 'Suspected Idle Devices',  # refined EN wording
+        'chart_cost_saving_pie': 'Electricity Cost Saving Ratio after Consolidation',  # refined EN wording
+        'annual_remaining_cost': 'Remaining Annual Electricity Cost',  # refined EN wording
+        'chart_annual_economics_bar': 'Annualized Economic Benefit after Consolidation'  # refined EN wording
+    }}
 
 
 def get_text(language: str) -> dict:

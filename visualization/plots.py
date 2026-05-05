@@ -7,6 +7,10 @@ import plotly.express as px
 
 PLOT_TEMPLATE = "plotly_dark"
 
+# Refined chart colors for the annual economics bar chart.  # modified
+ECONOMICS_BAR_COLORS = ["#8B5CF6", "#EF4444", "#22C55E"]  # modified
+
+
 
 def _transparent_layout(fig: go.Figure, title: str) -> go.Figure:
     fig.update_layout(
@@ -70,7 +74,18 @@ def create_asset_status_pie(asset_df: pd.DataFrame, text: dict) -> go.Figure:
     )
     fig.update_traces(textposition="inside", textinfo="percent+label")
 
-    return _transparent_layout(fig, text["chart_asset_status_pie"])
+    fig = _transparent_layout(fig, text["chart_asset_status_pie"])
+    fig.update_layout(
+        margin=dict(l=30, r=25, t=58, b=82),  # modified: add bottom space for legend
+        legend=dict(
+            orientation="h",
+            yanchor="top",
+            y=-0.12,
+            xanchor="center",
+            x=0.5,
+        ),  # modified: move legend below pie chart and center it
+    )
+    return fig
 
 
 def create_cost_saving_pie(summary: dict, text: dict) -> go.Figure:
@@ -103,7 +118,18 @@ def create_cost_saving_pie(summary: dict, text: dict) -> go.Figure:
     )
     fig.update_traces(textposition="inside", textinfo="percent+label")
 
-    return _transparent_layout(fig, text["chart_cost_saving_pie"])
+    fig = _transparent_layout(fig, text["chart_cost_saving_pie"])
+    fig.update_layout(
+        margin=dict(l=30, r=25, t=58, b=82),  # modified: add bottom space for legend
+        legend=dict(
+            orientation="h",
+            yanchor="top",
+            y=-0.12,
+            xanchor="center",
+            x=0.5,
+        ),  # modified: move legend below pie chart and center it
+    )
+    return fig
 
 
 def create_annual_economics_bar(summary: dict, text: dict) -> go.Figure:
@@ -112,22 +138,22 @@ def create_annual_economics_bar(summary: dict, text: dict) -> go.Figure:
     annual_saving = float(summary.get("annual_operating_saving", 0) or 0)
     first_year_net = float(summary.get("first_year_net_benefit", 0) or 0)
 
-    plot_df = pd.DataFrame(
-        {
-            "item": [
-                text["one_time_consolidation_cost"],
-                text["annual_operating_saving"],
-                text["first_year_net_benefit"],
-            ],
-            "value": [-one_time_cost, annual_saving, first_year_net],
-        }
-    )
+    items = [
+        text["one_time_consolidation_cost"],
+        text["annual_operating_saving"],
+        text["first_year_net_benefit"],
+    ]
+    values = [-one_time_cost, annual_saving, first_year_net]
 
-    fig = px.bar(
-        plot_df,
-        x="item",
-        y="value",
-        labels={"item": "", "value": text["y_cost"]},
+    fig = go.Figure()
+    fig.add_trace(
+        go.Bar(
+            x=items,
+            y=values,
+            marker=dict(color=ECONOMICS_BAR_COLORS),  # modified: use purple, red, and green for the three bars
+            width=[0.44, 0.44, 0.44],  # modified: reduce bar width to roughly two-thirds of the previous default
+            hovertemplate="%{x}<br>%{y:,.0f}<extra></extra>",
+        )
     )
     fig.add_hline(y=0, line_width=1)
     fig.update_xaxes(title="", tickangle=0)
